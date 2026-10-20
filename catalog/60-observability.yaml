@@ -1,0 +1,156 @@
+- id: prometheus
+  name: Prometheus
+  category: observability
+  kind: service
+  aliases: [micrometer, metrics]
+  summary: Scrapes your app on the host (APP_PORT) plus dock services; Grafana comes along.
+  companions: [grafana]
+  detect:
+    dependencies:
+      - "*:micrometer-registry-prometheus"
+      - "*:quarkus-micrometer-registry-prometheus"
+      - prom-client
+      - prometheus_client
+      - prometheus-client
+      - prometheus-fastapi-instrumentator
+      - github.com/prometheus/client_golang
+      - prometheus-net*
+    patterns: ["management\\.endpoints\\.web\\.exposure\\.include[^\\n]*prometheus", "/actuator/prometheus", "\\bprometheus\\b"]
+  env:
+    PROMETHEUS_PORT: "9090"
+    APP_PORT: "8080"
+    APP_METRICS_PATH: /actuator/prometheus
+  compose:
+    image: prom/prometheus:v2.54.1
+    ports: ["${PROMETHEUS_PORT}:9090"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - ./init/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+  seeds:
+    - path: init/prometheus/prometheus.yml
+      template: prometheus/prometheus.yml
+  appEnv:
+    PROMETHEUS_URL: "http://localhost:${PROMETHEUS_PORT}"
+    MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus,metrics"
+
+- id: grafana
+  name: Grafana
+  summary: Dashboards with Prometheus (and Jaeger) pre-provisioned; anonymous admin.
+  category: observability
+  kind: service
+  requires: [prometheus]
+  detect:
+    patterns: ["\\bgrafana\\b"]
+  env:
+    GRAFANA_PORT: "3001"
+  compose:
+    image: grafana/grafana:11.2.0
+    ports: ["${GRAFANA_PORT}:3000"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./init/grafana/datasources.yml:/etc/grafana/provisioning/datasources/dock.yml:ro
+      - grafana-data:/var/lib/grafana
+  seeds:
+    - path: init/grafana/datasources.yml
+      template: grafana/datasources.yml
+  appEnv:
+    GRAFANA_URL: "http://localhost:${GRAFANA_PORT}"
+
+- id: otel-collector
+  name: OpenTelemetry Collector
+  category: observability
+  kind: service
+  aliases: [opentelemetry, otel, tracing]
+  summary: OTLP receiver (gRPC 4317 / HTTP 4318) forwarding traces to Jaeger and metrics to Prometheus.
+  companions: [jaeger]
+  detect:
+    dependencies:
+      - io.opentelemetry:*
+      - io.opentelemetry.instrumentation:*
+      - "*:micrometer-tracing-bridge-otel"
+      - "*:quarkus-opentelemetry"
+      - "@opentelemetry/*"
+      - opentelemetry-*
+      - go.opentelemetry.io/*
+      - OpenTelemetry*
+      - "*telemetry*helper*"
+    patterns: ["OTEL_EXPORTER_OTLP", "otel\\.exporter", "management\\.otlp", "opentelemetry"]
+    env: [OTEL_]
+  env:
+    OTEL_GRPC_PORT: "4317"
+    OTEL_HTTP_PORT: "4318"
+  compose:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    ports:
+      - "${OTEL_GRPC_PORT}:4317"
+      - "${OTEL_HTTP_PORT}:4318"
+    volumes:
+      - ./init/otel/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+  seeds:
+    - path: init/otel/otel-collector.yml
+      template: otel/otel-collector.yml
+  appEnv:
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:${OTEL_GRPC_PORT}"
+    OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+    OTEL_TRACES_EXPORTER: otlp
+    OTEL_METRICS_EXPORTER: otlp
+    MANAGEMENT_OTLP_TRACING_ENDPOINT: "http://localhost:${OTEL_HTTP_PORT}/v1/traces"
+
+- id: jaeger
+  name: Jaeger
+  summary: Trace UI receiving OTLP from otel-collector.
+  category: observability
+  kind: service
+  detect:
+    dependencies: ["io.jaegertracing:*", jaeger-client]
+    patterns: ["\\bjaeger\\b"]
+  env:
+    JAEGER_UI_PORT: "16686"
+  compose:
+    image: jaegertracing/all-in-one:1.60
+    ports: ["${JAEGER_UI_PORT}:16686"]
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+  appEnv:
+    JAEGER_URL: "http://localhost:${JAEGER_UI_PORT}"
+
+- id: dynatrace
+  name: Dynatrace
+  category: observability
+  kind: report-only
+  detect:
+    dependencies: ["com.dynatrace*", "@dynatrace/*", "*:micrometer-registry-dynatrace"]
+    patterns: ["\\bdynatrace\\b", "\\bDT_TENANT\\b|\\bDT_API_TOKEN\\b", "oneagent"]
+  notes: OneAgent/SaaS only. Disable locally (`management.dynatrace.metrics.export.enabled=false`, unset DT_*). Use otel-collector + prometheus for local telemetry.
+
+- id: elastic-apm
+  name: Elastic APM / ELK logging
+  category: observability
+  kind: report-only
+  detect:
+    dependencies: ["co.elastic.apm:*", elastic-apm-node, elastic-apm, "*:logstash-logback-encoder", "*:logstash-gelf"]
+    patterns: ["ELASTIC_APM_", "elastic\\.apm", "\\blogstash\\b"]
+  notes: Log to stdout locally (JSON encoder is fine). If you need the APM UI, `dock add elasticsearch` and run the APM server/Kibana manually.
+
+- id: datadog
+  name: Datadog
+  category: observability
+  kind: report-only
+  detect:
+    dependencies: [dd-trace, ddtrace, "com.datadoghq:*", "*:micrometer-registry-datadog"]
+    patterns: ["\\bdatadog\\b", "\\bDD_AGENT_HOST\\b"]
+  notes: Disable the agent locally (DD_TRACE_ENABLED=false) or run a datadog/agent container with your own API key.
+
+- id: splunk
+  name: Splunk
+  category: observability
+  kind: report-only
+  detect:
+    dependencies: ["com.splunk*", splunk-logging]
+    patterns: ["\\bsplunk\\b", "\\bHEC_TOKEN\\b"]
+  notes: Log to stdout locally.

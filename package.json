@@ -1,0 +1,52 @@
+{
+  "name": "dock-local",
+  "version": "0.1.0",
+  "description": "Detect the infrastructure a project depends on (databases, brokers, caches, AWS services, external APIs) and generate a ready-to-run local Docker Compose stack with seeds.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "bin": {
+    "dock": "./bin/dock.js",
+    "dock-local": "./bin/dock.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "catalog",
+    "templates",
+    "SKILL.md",
+    "AGENTS.md",
+    "README.md",
+    "README.pt-BR.md",
+    "mcp.json",
+    "openai-action.json",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "link": "npm run build && npm link",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "docker",
+    "docker-compose",
+    "local-development",
+    "catalog-driven",
+    "devops",
+    "detection",
+    "skill"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.3",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.9.1"
+  }
+}

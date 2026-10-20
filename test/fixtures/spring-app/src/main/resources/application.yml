@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: cards-limits
+  datasource:
+    url: jdbc:postgresql://cards-db.cluster-abc.us-east-1.rds.amazonaws.com:5432/cards_limits
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  kafka:
+    bootstrap-servers: b-1.msk-cluster.kafka.us-east-1.amazonaws.com:9098
+    properties:
+      schema.registry.url: https://schema-registry.example.com
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.example.com/auth/realms/cards
+app:
+  topics:
+    limit-updated: cards.limit.updated
+    limit-requested: cards.limit.requested
+  s3:
+    bucket-name: cards-limits-documents
+  secrets:
+    secret-name: prod/cards/limits/db
+  partner:
+    base-url: https://api.example.com/v1
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus

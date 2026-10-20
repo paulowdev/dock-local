@@ -1,0 +1,58 @@
+# Platform / delivery tooling: detected for context only.
+- id: docker
+  name: Dockerfile
+  category: platform
+  kind: report-only
+  detect:
+    files: ["**/Dockerfile", "**/Dockerfile.*", "**/docker-compose*.yml", "**/compose*.yaml"]
+  notes: The project builds its own image. Simplest loop - run the app on the host with .dock/app.env; to containerise it too, add a service to .dock/docker-compose.yml on the `dock` network and swap `localhost` for service names.
+
+- id: kubernetes
+  name: Kubernetes / OpenShift / Helm
+  category: platform
+  kind: report-only
+  aliases: [openshift, helm, eks, aks, k8s]
+  detect:
+    files: ["**/Chart.yaml", "**/helm/**", "**/k8s/**", "**/kubernetes/**", "**/openshift/**"]
+    patterns: ["kind:\\s*(Deployment|DeploymentConfig|StatefulSet|Service|Ingress|Route)\\b", "\\beks\\b", "\\baks\\b", "\\bopenshift\\b|\\boc\\s+apply\\b"]
+  notes: Deployment manifests; environment variables declared there usually reveal the endpoints to override locally (see .dock/app.env).
+
+- id: gluon
+  name: Gluon CI/CD
+  category: platform
+  kind: report-only
+  detect:
+    files: ["**/.gluon/**", "**/.ci/conf.yml"]
+  notes: Pipeline definitions only. Values files under .gluon/cd/<env>/ are a good source for the real service names/hosts.
+
+- id: github-actions
+  name: GitHub Actions
+  category: platform
+  kind: report-only
+  detect:
+    files: ["**/.github/workflows/*.yml", "**/.github/workflows/*.yaml"]
+
+- id: jenkins
+  name: Jenkins
+  category: platform
+  kind: report-only
+  detect:
+    files: ["**/Jenkinsfile", "**/Jenkinsfile.*"]
+
+- id: terraform
+  name: Terraform / CloudFormation (IaC)
+  category: platform
+  kind: report-only
+  aliases: [iac, cloudformation]
+  detect:
+    files: ["**/*.tf"]
+    patterns: ["AWSTemplateFormatVersion", "\\bresource\\s+\"aws_"]
+  notes: IaC declares the cloud resources the app expects; names extracted from it seed the local emulators.
+
+- id: sonarqube
+  name: SonarQube
+  category: platform
+  kind: report-only
+  detect:
+    files: ["**/sonar-project.properties"]
+    patterns: ["sonar\\.(projectKey|host\\.url)"]

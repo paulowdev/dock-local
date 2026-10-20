@@ -1,0 +1,387 @@
+# Relational and document databases. Images are Docker Hub names unless fully qualified;
+# the registry mirror prefix is applied at generation time.
+- id: postgres
+  name: PostgreSQL
+  category: database
+  kind: service
+  aliases: [postgresql, aurora-postgres, rds-postgres, aurora-postgresql]
+  summary: PostgreSQL 16 with databases pre-created from detected JDBC/URI names.
+  detect:
+    dependencies:
+      - org.postgresql:postgresql
+      - "*:r2dbc-postgresql"
+      - pg
+      - postgres
+      - pg-promise
+      - psycopg2*
+      - psycopg*
+      - asyncpg
+      - github.com/lib/pq
+      - github.com/jackc/pgx*
+      - npgsql*
+      - "*foundation-datasource*"
+    patterns:
+      - "jdbc:postgresql://"
+      - "r2dbc:postgresql://"
+      - "\\bpostgres(ql)?://"
+      - "aurora-postgresql"
+      - "org\\.postgresql\\.Driver"
+      - "\\bengine\\s*=\\s*\"?aurora-postgresql"
+    env: [POSTGRES_, PGHOST, PGDATABASE]
+  extract:
+    databases: "(?:jdbc:postgresql|r2dbc:postgresql|postgres(?:ql)?)://[^/\\s\"']+/(?<v>[a-zA-Z][a-zA-Z0-9_]{1,62})"
+  env:
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: app
+    POSTGRES_PASSWORD: app
+    POSTGRES_DB: app
+  compose:
+    image: postgres:16-alpine
+    ports: ["${POSTGRES_PORT}:5432"]
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  seeds:
+    - path: init/postgres/01-databases.sql
+      template: postgres/databases.sql
+  appEnv:
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://localhost:${POSTGRES_PORT}/${POSTGRES_DB}"
+    SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+    SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+    DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}"
+
+- id: mysql
+  name: MySQL / MariaDB
+  category: database
+  kind: service
+  aliases: [mariadb, aurora-mysql, rds-mysql]
+  summary: MySQL 8.4 (also covers MariaDB clients); schemas pre-created from detected URLs.
+  detect:
+    dependencies:
+      - com.mysql:mysql-connector-j
+      - mysql:mysql-connector-java
+      - org.mariadb.jdbc:mariadb-java-client
+      - mysql
+      - mysql2
+      - mariadb
+      - pymysql
+      - mysqlclient
+      - mysql-connector-python
+      - github.com/go-sql-driver/mysql
+      - MySql.Data
+      - MySqlConnector
+    patterns:
+      - "jdbc:(mysql|mariadb)://"
+      - "\\bmysql://"
+      - "aurora-mysql"
+    env: [MYSQL_, MARIADB_]
+  extract:
+    databases: "(?:jdbc:(?:mysql|mariadb)|mysql)://[^/\\s\"']+/(?<v>[a-zA-Z][a-zA-Z0-9_]{1,62})"
+  env:
+    MYSQL_PORT: "3306"
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_USER: app
+    MYSQL_PASSWORD: app
+    MYSQL_DATABASE: app
+  compose:
+    image: mysql:8.4
+    ports: ["${MYSQL_PORT}:3306"]
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init/mysql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  seeds:
+    - path: init/mysql/01-databases.sql
+      template: mysql/databases.sql
+  appEnv:
+    SPRING_DATASOURCE_URL: "jdbc:mysql://localhost:${MYSQL_PORT}/${MYSQL_DATABASE}"
+    SPRING_DATASOURCE_USERNAME: "${MYSQL_USER}"
+    SPRING_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD}"
+    DATABASE_URL: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@localhost:${MYSQL_PORT}/${MYSQL_DATABASE}"
+
+- id: oracle
+  name: Oracle Database
+  category: database
+  kind: service
+  aliases: [oracledb, oracle-db]
+  summary: Oracle Free 23c (gvenzl image) with an application user.
+  detect:
+    dependencies:
+      - com.oracle.database.jdbc:*
+      - com.oracle.ojdbc:*
+      - "*:ojdbc*"
+      - oracledb
+      - cx_oracle
+      - Oracle.ManagedDataAccess*
+      - github.com/godror/godror
+    patterns:
+      - "jdbc:oracle:thin"
+      - "oracle\\.jdbc\\.OracleDriver"
+      - "\\boracle(db)?://"
+  env:
+    ORACLE_PORT: "1521"
+    ORACLE_PASSWORD: oracle
+    ORACLE_APP_USER: app
+    ORACLE_APP_PASSWORD: app
+  compose:
+    image: gvenzl/oracle-free:23-slim
+    ports: ["${ORACLE_PORT}:1521"]
+    environment:
+      ORACLE_PASSWORD: "${ORACLE_PASSWORD}"
+      APP_USER: "${ORACLE_APP_USER}"
+      APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD}"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./init/oracle:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    SPRING_DATASOURCE_URL: "jdbc:oracle:thin:@//localhost:${ORACLE_PORT}/FREEPDB1"
+    SPRING_DATASOURCE_USERNAME: "${ORACLE_APP_USER}"
+    SPRING_DATASOURCE_PASSWORD: "${ORACLE_APP_PASSWORD}"
+  notes: First start takes a few minutes. Drop SQL files into .dock/init/oracle to seed schemas.
+
+- id: sqlserver
+  name: Microsoft SQL Server
+  category: database
+  kind: service
+  aliases: [mssql, sql-server]
+  summary: SQL Server 2022 Developer edition (linux/amd64; runs under emulation on Apple Silicon).
+  detect:
+    dependencies:
+      - com.microsoft.sqlserver:mssql-jdbc
+      - mssql
+      - tedious
+      - pyodbc
+      - pymssql
+      - Microsoft.Data.SqlClient
+      - System.Data.SqlClient
+      - github.com/microsoft/go-mssqldb
+      - github.com/denisenkom/go-mssqldb
+    patterns:
+      - "jdbc:sqlserver://"
+      - "SQLServerDriver"
+      - "Server=[^;]+;\\s*Database="
+  env:
+    MSSQL_PORT: "1433"
+    MSSQL_SA_PASSWORD: "Dock_Str0ng!Pass"
+  compose:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    ports: ["${MSSQL_PORT}:1433"]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      MSSQL_PID: Developer
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  appEnv:
+    SPRING_DATASOURCE_URL: "jdbc:sqlserver://localhost:${MSSQL_PORT};encrypt=false;databaseName=master"
+    SPRING_DATASOURCE_USERNAME: sa
+    SPRING_DATASOURCE_PASSWORD: "${MSSQL_SA_PASSWORD}"
+
+- id: db2
+  name: IBM Db2
+  category: database
+  kind: service
+  aliases: [ibm-db2, db2-mainframe]
+  summary: Db2 Community Edition (large image, linux/amd64, privileged). Mainframe Db2 is stubbed via this local instance.
+  detect:
+    dependencies:
+      - com.ibm.db2:jcc
+      - com.ibm.db2.jcc:*
+      - ibm_db
+      - ibm-db
+      - IBM.Data.Db2*
+      - github.com/ibmdb/go_ibm_db
+    patterns:
+      - "jdbc:db2://"
+      - "com\\.ibm\\.db2\\.jcc"
+  env:
+    DB2_PORT: "50000"
+    DB2_PASSWORD: db2inst1
+    DB2_DBNAME: APPDB
+  compose:
+    image: icr.io/db2_community/db2:11.5.9.0
+    platform: linux/amd64
+    privileged: true
+    ports: ["${DB2_PORT}:50000"]
+    environment:
+      LICENSE: accept
+      DB2INST1_PASSWORD: "${DB2_PASSWORD}"
+      DBNAME: "${DB2_DBNAME}"
+    volumes:
+      - db2-data:/database
+  appEnv:
+    SPRING_DATASOURCE_URL: "jdbc:db2://localhost:${DB2_PORT}/${DB2_DBNAME}"
+    SPRING_DATASOURCE_USERNAME: db2inst1
+    SPRING_DATASOURCE_PASSWORD: "${DB2_PASSWORD}"
+  notes: Image is ~3 GB and takes several minutes to initialise; watch `dock logs db2` for "Setup has completed".
+
+- id: mongodb
+  name: MongoDB / DocumentDB
+  category: nosql
+  kind: service
+  aliases: [mongo, documentdb, docdb]
+  summary: MongoDB 7 standing in for Amazon DocumentDB; databases pre-created from detected URIs.
+  detect:
+    dependencies:
+      - org.mongodb:*
+      - "*:spring-boot-starter-data-mongodb*"
+      - "*:spring-data-mongodb"
+      - "*documentdb*"
+      - mongodb
+      - mongoose
+      - pymongo
+      - motor
+      - go.mongodb.org/mongo-driver
+      - MongoDB.Driver
+    patterns:
+      - "mongodb(\\+srv)?://"
+      - "docdb\\.amazonaws\\.com"
+      - "spring\\.data\\.mongodb"
+    env: [MONGO_, MONGODB_]
+  extract:
+    databases: "mongodb(?:\\+srv)?://[^/\\s\"']+/(?<v>[a-zA-Z][a-zA-Z0-9_-]{1,62})"
+  env:
+    MONGO_PORT: "27017"
+    MONGO_USER: app
+    MONGO_PASSWORD: app
+    MONGO_DB: app
+  compose:
+    image: mongo:7
+    ports: ["${MONGO_PORT}:27017"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
+      MONGO_INITDB_DATABASE: "${MONGO_DB}"
+    volumes:
+      - mongo-data:/data/db
+      - ./init/mongodb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' localhost:27017/test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  seeds:
+    - path: init/mongodb/01-databases.js
+      template: mongodb/databases.js
+  appEnv:
+    SPRING_DATA_MONGODB_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@localhost:${MONGO_PORT}/${MONGO_DB}?authSource=admin"
+    MONGODB_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@localhost:${MONGO_PORT}/${MONGO_DB}?authSource=admin"
+  notes: DocumentDB requires TLS in AWS; disable TLS (or use `tls=false`) in your local profile.
+
+- id: cassandra
+  name: Cassandra / ScyllaDB
+  category: nosql
+  kind: service
+  aliases: [scylla, scylladb, keyspaces]
+  summary: Cassandra 4.1 single node; keyspaces created from detected config.
+  companions: [cassandra-init]
+  detect:
+    dependencies:
+      - com.datastax.oss:*
+      - com.datastax.cassandra:*
+      - "*:spring-boot-starter-data-cassandra*"
+      - cassandra-driver
+      - scylladb
+      - github.com/gocql/gocql
+      - CassandraCSharpDriver
+    patterns:
+      - "contact-points"
+      - "spring\\.(data\\.)?cassandra"
+      - "\\bcassandra\\b"
+      - "\\bscylla"
+  extract:
+    keyspaces: "keyspace(?:-name|Name|_name)?[ \\t]*[:=][ \\t]*[\"']?(?<v>[a-zA-Z][a-zA-Z0-9_]{1,47})"
+  env:
+    CASSANDRA_PORT: "9042"
+    CASSANDRA_KEYSPACE: app
+  compose:
+    image: cassandra:4.1
+    ports: ["${CASSANDRA_PORT}:9042"]
+    environment:
+      CASSANDRA_CLUSTER_NAME: dock
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 128M
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster' >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+  appEnv:
+    SPRING_CASSANDRA_CONTACT_POINTS: localhost
+    SPRING_CASSANDRA_PORT: "${CASSANDRA_PORT}"
+    SPRING_CASSANDRA_LOCAL_DATACENTER: datacenter1
+    SPRING_CASSANDRA_KEYSPACE_NAME: "${CASSANDRA_KEYSPACE}"
+
+- id: cassandra-init
+  name: Cassandra seed
+  category: nosql
+  kind: service
+  requires: [cassandra]
+  summary: One-shot job that applies .dock/init/cassandra/init.cql.
+  compose:
+    image: cassandra:4.1
+    restart: "no"
+    depends_on:
+      cassandra: { condition: service_healthy }
+    entrypoint: ["/bin/bash", "-c", "cqlsh cassandra -f /init/init.cql"]
+    volumes:
+      - ./init/cassandra:/init:ro
+  seeds:
+    - path: init/cassandra/init.cql
+      template: cassandra/init.cql
+
+- id: h2
+  name: H2 (embedded)
+  category: database
+  kind: report-only
+  detect:
+    dependencies: [com.h2database:h2]
+    patterns: ["jdbc:h2:"]
+  notes: Embedded database; nothing to run. If H2 only backs tests, keep it. If it substitutes a real DB, prefer running the real engine (`dock add postgres`).
+
+- id: sqlite
+  name: SQLite
+  category: database
+  kind: report-only
+  detect:
+    dependencies: [sqlite3, better-sqlite3, org.xerial:sqlite-jdbc]
+  notes: Embedded file database; nothing to run.
+
+- id: rds
+  name: Amazon RDS / Aurora
+  category: database
+  kind: report-only
+  detect:
+    patterns: ["rds\\.amazonaws\\.com", "aws_rds_cluster", "aws_db_instance", "\\bAurora\\b"]
+  notes: Managed instance. The engine is resolved by driver detection (postgres / mysql / oracle / sqlserver); point the app at the local engine via .dock/app.env.

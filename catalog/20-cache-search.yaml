@@ -1,0 +1,169 @@
+- id: redis
+  name: Redis / ElastiCache
+  category: cache
+  kind: service
+  aliases: [elasticache, valkey]
+  summary: Redis 7 standing in for ElastiCache.
+  detect:
+    dependencies:
+      - "*:spring-boot-starter-data-redis*"
+      - io.lettuce:lettuce-core
+      - redis.clients:jedis
+      - org.redisson:*
+      - redis
+      - ioredis
+      - "@redis/client"
+      - redis-py
+      - aioredis
+      - github.com/redis/go-redis*
+      - github.com/go-redis/redis*
+      - StackExchange.Redis
+      - "*cachestarter*"
+    patterns:
+      - "\\brediss?://"
+      - "spring\\.(data\\.)?redis"
+      - "cache\\.amazonaws\\.com"
+      - "elasticache"
+    env: [REDIS_]
+  env:
+    REDIS_PORT: "6379"
+  compose:
+    image: redis:7-alpine
+    ports: ["${REDIS_PORT}:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  appEnv:
+    SPRING_DATA_REDIS_HOST: localhost
+    SPRING_DATA_REDIS_PORT: "${REDIS_PORT}"
+    REDIS_URL: "redis://localhost:${REDIS_PORT}"
+
+- id: hazelcast
+  name: Hazelcast
+  summary: Hazelcast 5 single member (also stands in for Infinispan grids).
+  category: cache
+  kind: service
+  aliases: [infinispan]
+  detect:
+    dependencies: ["com.hazelcast:*", hazelcast-client]
+    patterns: ["\\bhazelcast\\b"]
+  env:
+    HAZELCAST_PORT: "5701"
+  compose:
+    image: hazelcast/hazelcast:5.3
+    ports: ["${HAZELCAST_PORT}:5701"]
+    environment:
+      HZ_CLUSTERNAME: dev
+  appEnv:
+    HAZELCAST_ADDRESS: "localhost:${HAZELCAST_PORT}"
+
+- id: caffeine
+  name: Caffeine / Ehcache (in-memory)
+  category: cache
+  kind: report-only
+  detect:
+    dependencies: ["com.github.ben-manes.caffeine:*", "org.ehcache:*", "*:spring-boot-starter-cache"]
+  notes: In-process cache; nothing to run.
+
+- id: elasticsearch
+  name: Elasticsearch
+  category: search
+  kind: service
+  summary: Elasticsearch 8 single node, security disabled.
+  detect:
+    dependencies:
+      - org.elasticsearch.client:*
+      - co.elastic.clients:*
+      - "*:spring-boot-starter-data-elasticsearch"
+      - "@elastic/elasticsearch"
+      - elasticsearch
+      - elasticsearch-dsl
+      - github.com/elastic/go-elasticsearch*
+      - NEST
+      - Elastic.Clients.Elasticsearch
+    patterns:
+      - "spring\\.elasticsearch"
+      - "elasticsearch[^\\n]*:9200"
+      - "\\bes\\.amazonaws\\.com"
+  env:
+    ELASTICSEARCH_PORT: "9200"
+  compose:
+    image: elasticsearch:8.15.0
+    ports: ["${ELASTICSEARCH_PORT}:9200"]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    SPRING_ELASTICSEARCH_URIS: "http://localhost:${ELASTICSEARCH_PORT}"
+    ELASTICSEARCH_URL: "http://localhost:${ELASTICSEARCH_PORT}"
+
+- id: kibana
+  name: Kibana
+  category: search
+  kind: service
+  requires: [elasticsearch]
+  summary: Kibana UI for the local Elasticsearch (opt-in - `dock add kibana`).
+  detect:
+    patterns: ["\\bkibana\\b"]
+  env:
+    KIBANA_PORT: "5601"
+  compose:
+    image: kibana:8.15.0
+    ports: ["${KIBANA_PORT}:5601"]
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      XPACK_SECURITY_ENABLED: "false"
+  appEnv:
+    KIBANA_UI_URL: "http://localhost:${KIBANA_PORT}"
+
+- id: opensearch
+  name: OpenSearch
+  category: search
+  kind: service
+  aliases: [aws-opensearch]
+  summary: OpenSearch 2.x single node, security plugin disabled.
+  detect:
+    dependencies:
+      - org.opensearch.client:*
+      - org.opensearch:*
+      - "@opensearch-project/opensearch"
+      - opensearch-py
+      - github.com/opensearch-project/opensearch-go*
+    patterns:
+      - "\\bopensearch\\b"
+      - "aoss\\.amazonaws\\.com"
+  env:
+    OPENSEARCH_PORT: "9200"
+    OPENSEARCH_ADMIN_PASSWORD: "Dock_Str0ng!Pass"
+  compose:
+    image: opensearchproject/opensearch:2.15.0
+    ports: ["${OPENSEARCH_PORT}:9200"]
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: "${OPENSEARCH_ADMIN_PASSWORD}"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    OPENSEARCH_URL: "http://localhost:${OPENSEARCH_PORT}"

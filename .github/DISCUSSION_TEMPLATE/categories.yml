@@ -1,0 +1,38 @@
+# Discussion categories configuration
+# This file configures the categories available in GitHub Discussions
+# Categories are auto-created when you enable Discussions for your repository
+
+categories:
+  - name: "General"
+    emoji: "💬"
+    description: "General discussions about dock-local"
+
+  - name: "Q&A"
+    emoji: "❓"
+    description: "Ask questions and get help from the community"
+    is_answerable: true
+
+  - name: "Ideas"
+    emoji: "💡"
+    description: "Share ideas for new features and improvements"
+
+  - name: "Service Requests"
+    emoji: "🔌"
+    description: "Discuss and vote on new services to add to the catalog"
+
+  - name: "Show and Tell"
+    emoji: "🎉"
+    description: "Show off your project setups and share how you're using dock-local"
+
+  - name: "Troubleshooting"
+    emoji: "🔧"
+    description: "Get help troubleshooting issues and configuration problems"
+    is_answerable: true
+
+  - name: "Documentation"
+    emoji: "📚"
+    description: "Discuss and improve documentation"
+
+  - name: "Performance"
+    emoji: "⚡"
+    description: "Discuss performance optimizations and best practices"

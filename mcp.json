@@ -1,0 +1,100 @@
+{
+  "name": "dock",
+  "description": "Multi-stack local infrastructure for any project, driven by automated detection. Detects databases, message brokers, caches, AWS services, OAuth providers, and external APIs, then generates a Docker Compose stack with seeds.",
+  "version": "0.1.0",
+  "type": "skill",
+  "category": "devops",
+  "tags": ["docker", "docker-compose", "local-development", "infrastructure", "devops", "catalog-driven", "detection"],
+  "platforms": ["macos", "linux", "windows"],
+  "requirements": {
+    "node": ">=18.18.0",
+    "docker": ">=24.0.0",
+    "docker-compose": ">=2.0.0"
+  },
+  "entrypoint": {
+    "command": "dock",
+    "fallback": "node ./bin/dock.js"
+  },
+  "capabilities": [
+    "detect-infrastructure",
+    "generate-docker-compose",
+    "manage-local-environments",
+    "seed-databases",
+    "configure-message-brokers",
+    "emulate-aws-services",
+    "mock-external-apis"
+  ],
+  "commands": {
+    "detect": {
+      "description": "Scan project and report detected services with evidence",
+      "usage": "dock detect [dir] [--json] [--plan] [--verbose]"
+    },
+    "init": {
+      "description": "Generate .dock/ directory with compose, seeds, and environment files",
+      "usage": "dock init [dir] [-y] [--up] [--app] [--services <ids>]"
+    },
+    "up": {
+      "description": "Start the Docker Compose stack",
+      "usage": "dock up [services...] [--app] [--build]"
+    },
+    "down": {
+      "description": "Stop the stack",
+      "usage": "dock down [-v]"
+    },
+    "status": {
+      "description": "Show container health and UI links",
+      "usage": "dock status"
+    },
+    "add": {
+      "description": "Add services to the stack",
+      "usage": "dock add <services...>"
+    },
+    "remove": {
+      "description": "Remove services from the stack",
+      "usage": "dock remove <services...>"
+    },
+    "list": {
+      "description": "Show catalog of supported services",
+      "usage": "dock list [-c <category>] [--json]"
+    },
+    "doctor": {
+      "description": "Check system requirements and configuration",
+      "usage": "dock doctor"
+    },
+    "env": {
+      "description": "Print environment variables for host application",
+      "usage": "dock env [--export]"
+    }
+  },
+  "integration": {
+    "claude": {
+      "skill_file": "SKILL.md",
+      "auto_detect": true,
+      "suggested_prompts": [
+        "Set up local infrastructure for this project",
+        "Start local development environment",
+        "Add redis to the local stack",
+        "Check what infrastructure this project needs"
+      ]
+    },
+    "devin": {
+      "compatible": true,
+      "skill_file": "SKILL.md"
+    },
+    "openai": {
+      "compatible": true,
+      "action_schema": "openai-action.json"
+    }
+  },
+  "documentation": {
+    "readme": "README.md",
+    "user_guide": "docs/USER-GUIDE.md",
+    "developer_guide": "docs/DEVELOPER-GUIDE.md",
+    "agent_notes": "AGENTS.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<your-username>/dock-local"
+  },
+  "license": "MIT"
+}

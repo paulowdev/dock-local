@@ -1,0 +1,17 @@
+{
+  "users": [
+    { "name": "{{env.RABBITMQ_USER}}", "password": "{{env.RABBITMQ_PASSWORD}}", "tags": ["administrator"] }
+  ],
+  "vhosts": [{ "name": "/" }],
+  "permissions": [
+    { "user": "{{env.RABBITMQ_USER}}", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*" }
+  ],
+  "queues": [
+{{#each resources.rabbit_queues}}
+    { "name": "{{this}}", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+{{/each}}
+    { "name": "dock.healthcheck", "vhost": "/", "durable": false, "auto_delete": false, "arguments": {} }
+  ],
+  "exchanges": [],
+  "bindings": []
+}

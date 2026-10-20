@@ -1,0 +1,223 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Dock - Local Infrastructure CLI",
+    "description": "Detects project infrastructure dependencies and generates Docker Compose stacks with automated seeding",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "file://",
+      "description": "Local CLI execution"
+    }
+  ],
+  "paths": {
+    "/detect": {
+      "post": {
+        "operationId": "detectInfrastructure",
+        "summary": "Detect infrastructure dependencies in a project",
+        "description": "Scans the project directory and identifies databases, brokers, caches, AWS services, and external APIs",
+        "parameters": [
+          {
+            "name": "dir",
+            "in": "query",
+            "description": "Project directory to scan (defaults to current directory)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "json",
+            "in": "query",
+            "description": "Output in JSON format",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "plan",
+            "in": "query",
+            "description": "Show the Docker Compose plan that would be generated",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detection results with confidence scores and evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/init": {
+      "post": {
+        "operationId": "initializeStack",
+        "summary": "Generate Docker Compose stack with seeds",
+        "description": "Creates .dock/ directory with compose files, seeds, and environment configuration",
+        "parameters": [
+          {
+            "name": "dir",
+            "in": "query",
+            "description": "Project directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yes",
+            "in": "query",
+            "description": "Skip confirmation prompts",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "up",
+            "in": "query",
+            "description": "Start the stack immediately after generation",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "app",
+            "in": "query",
+            "description": "Include the project's own Dockerfile in the stack",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "services",
+            "in": "query",
+            "description": "Comma-separated service IDs to include",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stack initialized successfully"
+          }
+        }
+      }
+    },
+    "/list": {
+      "get": {
+        "operationId": "listServices",
+        "summary": "List available services in catalog",
+        "description": "Shows all supported services with categories and descriptions",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category (database, messaging, cache, aws, security, observability, integration)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "json",
+            "in": "query",
+            "description": "Output in JSON format",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Service"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DetectionResult": {
+        "type": "object",
+        "properties": {
+          "detections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"]
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "resources": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

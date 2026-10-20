@@ -1,0 +1,97 @@
+# Systems the project talks to but that cannot run locally are stubbed by WireMock.
+- id: wiremock
+  name: WireMock (HTTP stubs)
+  category: integration
+  kind: service
+  aliases: [mock, stubs]
+  summary: Stubs outbound HTTP dependencies (Apigee, mainframe gateways, partner APIs) from .dock/init/wiremock/mappings.
+  env:
+    WIREMOCK_PORT: "8880"
+  compose:
+    image: wiremock/wiremock:3.9.1
+    command: ["--global-response-templating", "--verbose", "--disable-banner"]
+    ports: ["${WIREMOCK_PORT}:8080"]
+    volumes:
+      - ./init/wiremock:/home/wiremock:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__admin/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  seeds:
+    - path: init/wiremock/mappings/dock-stubs.json
+      template: wiremock/stubs.json
+    - path: init/wiremock/__files/README.txt
+      template: wiremock/files-readme.txt
+  appEnv:
+    WIREMOCK_URL: "http://localhost:${WIREMOCK_PORT}"
+  notes: Point each external base URL in your local profile at http://localhost:8880 (a stub per detected host is scaffolded; admin API at /__admin).
+
+- id: apigee
+  name: Apigee (API gateway)
+  category: integration
+  kind: external
+  provider: wiremock
+  summary: Proxies deployed on Apigee; upstream calls through Apigee are stubbed by WireMock.
+  detect:
+    dependencies: ["*apigee*"]
+    files: ["**/apiproxy/**"]
+    patterns: ["\\bapigee\\b", "APIGEE_PRODUCT|APIGEE_"]
+  extract:
+    hosts: "https?://(?<v>[a-z0-9.-]*apigee[a-z0-9.-]*)"
+  notes: If this repo IS an Apigee proxy, there is no runtime to start; test policies with apigeelint / mocks. If it CALLS Apigee, stub the target hosts in WireMock.
+
+- id: mainframe
+  name: Mainframe (CICS / Altair / host gateway)
+  summary: Host/CICS gateways stubbed over HTTP/SOAP by WireMock.
+  category: integration
+  kind: external
+  provider: wiremock
+  detect:
+    dependencies: ["*cics*", "*:ctgclient*", "*altair*"]
+    patterns: ["\\bCICS\\b", "\\bAltair\\b", "\\bmainframe\\b", "\\bCTG\\b", "\\bcopybook\\b", "\\bcobol\\b"]
+  notes: Host transactions cannot run locally. Stub the gateway (HTTP/SOAP) in WireMock; MQ-based bridges use the local ibm-mq.
+
+- id: external-http
+  name: Outbound HTTP integrations
+  category: integration
+  kind: external
+  provider: wiremock
+  summary: Partner/internal APIs called over HTTP; a WireMock stub is scaffolded per detected host.
+  detect:
+    patterns:
+      - "\\bRestTemplate\\b|\\bWebClient\\b|@FeignClient|\\bRestClient\\b"
+      - "\\baxios\\b|\\bnode-fetch\\b|\\bgot\\(|\\bundici\\b"
+      - "\\brequests\\.(get|post)\\(|\\bhttpx\\."
+      - "\\bHttpClient\\b"
+    dependencies: ["*:spring-cloud-starter-openfeign", "*:spring-boot-starter-webflux", axios, got, undici, node-fetch, requests, httpx, "*:quarkus-rest-client*"]
+  extract:
+    hosts: "https://(?<v>[a-z0-9-]+(?:\\.[a-z0-9-]+)+)"
+  notes: Review .dock/init/wiremock/mappings/dock-stubs.json and replace placeholder responses with realistic payloads.
+
+- id: camel
+  name: Apache Camel
+  category: integration
+  kind: report-only
+  detect:
+    dependencies: ["org.apache.camel*"]
+    patterns: ["\\bRouteBuilder\\b", "camel\\.springboot"]
+  notes: Integration framework; each endpoint (kafka:, jms:, sql:, http:) is resolved by its own detection.
+
+- id: grpc
+  name: gRPC
+  category: integration
+  kind: report-only
+  detect:
+    dependencies: ["io.grpc:*", "@grpc/grpc-js", grpcio, google.golang.org/grpc, Grpc.Net.Client]
+    files: ["**/*.proto"]
+  notes: gRPC upstreams are not stubbed by default; use WireMock's gRPC extension or a fake server from the .proto files.
+
+- id: soap
+  name: SOAP / WSDL
+  category: integration
+  kind: report-only
+  detect:
+    dependencies: ["*:spring-boot-starter-web-services", "*:jaxws-*", "*:cxf-*", soap, strong-soap, zeep]
+    files: ["**/*.wsdl"]
+  notes: SOAP endpoints can be stubbed in WireMock (POST + body matching). Add mappings to .dock/init/wiremock/mappings.

@@ -1,0 +1,120 @@
+name: New Service Request
+description: Request support for a new infrastructure service
+title: "[Service]: Add support for <service-name>"
+labels: ["service-request", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request support for a new infrastructure service in the dock-local catalog.
+        Before submitting, check [CATALOG-RECOMMENDATIONS.md](https://github.com/your-username/dock-local/blob/main/CATALOG-RECOMMENDATIONS.md) to see if it's already planned.
+
+  - type: input
+    id: service-name
+    attributes:
+      label: Service Name
+      description: Official name of the service
+      placeholder: e.g., Valkey, Minio, NATS
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Service Category
+      description: Which category does this service belong to?
+      options:
+        - Database (SQL/NoSQL)
+        - Message Broker
+        - Cache & Search
+        - AWS / Cloud Services
+        - Security & Identity
+        - Observability
+        - Integration / API Mock
+        - Platform / Runtime
+    validations:
+      required: true
+
+  - type: input
+    id: docker-image
+    attributes:
+      label: Official Docker Image
+      description: Docker Hub or official container image
+      placeholder: e.g., valkey/valkey:latest, minio/minio:latest
+    validations:
+      required: true
+
+  - type: input
+    id: homepage
+    attributes:
+      label: Official Homepage / Documentation
+      description: Link to official project website or docs
+      placeholder: https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Service Description
+      description: Brief description of what this service does
+      placeholder: A 1-2 sentence description of the service and its purpose
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why would developers need this service locally?
+      placeholder: Explain the use case for local development...
+    validations:
+      required: true
+
+  - type: textarea
+    id: detection-hints
+    attributes:
+      label: Detection Hints
+      description: How can dock-local detect this service in a project?
+      placeholder: |
+        Dependencies:
+        - npm: minio, @aws-sdk/client-s3
+        - maven: io.minio:minio
+        - pip: minio
+
+        Environment variables:
+        - MINIO_ENDPOINT
+        - S3_ENDPOINT
+
+        Configuration patterns:
+        - Files with minio:// URLs
+        - AWS SDK with custom endpoint
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: seed-requirements
+    attributes:
+      label: Seed/Initialization Requirements
+      description: What needs to be provisioned at startup?
+      placeholder: |
+        - Buckets
+        - Access keys
+        - Initial data
+        - Configuration files
+      render: markdown
+
+  - type: textarea
+    id: similar-services
+    attributes:
+      label: Similar/Alternative Services
+      description: Is this a replacement or alternative to an existing service?
+      placeholder: e.g., "Valkey is an alternative to Redis"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: Links to tutorials, examples, etc.

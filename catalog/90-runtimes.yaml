@@ -1,0 +1,48 @@
+# Application runtimes: identify the stack to tailor hints (Spring property names etc.).
+- id: spring-boot
+  name: Spring Boot
+  category: runtime
+  kind: runtime
+  detect:
+    dependencies: ["org.springframework.boot:*"]
+    files: ["**/src/main/resources/application*.yml", "**/src/main/resources/application*.yaml", "**/src/main/resources/application*.properties"]
+  notes: Use a `local` profile - `SPRING_PROFILES_ACTIVE=local` with values from .dock/app.env (env vars override any property).
+
+- id: quarkus
+  name: Quarkus
+  category: runtime
+  kind: runtime
+  detect:
+    dependencies: ["io.quarkus:*", "io.quarkus.platform:*"]
+  notes: Quarkus Dev Services can start some containers itself; disable them (`quarkus.devservices.enabled=false`) when using the dock stack to avoid duplicates.
+
+- id: nodejs
+  name: Node.js
+  category: runtime
+  kind: runtime
+  detect:
+    files: ["package.json"]
+  notes: Load .dock/app.env with `node --env-file=.dock/app.env` (Node 20+) or dotenv.
+
+- id: python
+  name: Python
+  category: runtime
+  kind: runtime
+  detect:
+    files: ["requirements.txt", "pyproject.toml", "Pipfile"]
+  notes: Load .dock/app.env with python-dotenv or `set -a; source .dock/app.env`.
+
+- id: dotnet
+  name: .NET
+  category: runtime
+  kind: runtime
+  detect:
+    files: ["**/*.csproj", "**/*.sln"]
+  notes: Map .dock/app.env keys to appsettings via environment variables (double underscore for nesting).
+
+- id: golang
+  name: Go
+  category: runtime
+  kind: runtime
+  detect:
+    files: ["go.mod"]

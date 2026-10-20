@@ -1,0 +1,316 @@
+# AWS managed services are emulated by a single ministack container. Each AWS
+# entry is provider-backed: it contributes its service name to ministack's
+# SERVICES variable and its extracted resources (buckets, queues...) to the
+# ministack init script.
+- id: ministack
+  name: Ministack (AWS emulator)
+  category: aws
+  kind: service
+  aliases: [localstack, aws-local]
+  summary: Local AWS API endpoint (LocalStack-compatible) hosting all detected AWS services; seeds buckets/queues/secrets on start.
+  providerEnvKey: SERVICES
+  env:
+    MINISTACK_PORT: "4566"
+    AWS_REGION: us-east-1
+    AWS_ACCESS_KEY_ID: test
+    AWS_SECRET_ACCESS_KEY: test
+  compose:
+    image: ministackorg/ministack:1.4.14
+    ports: ["${MINISTACK_PORT}:4566"]
+    environment:
+      DEFAULT_REGION: "${AWS_REGION}"
+      AWS_DEFAULT_REGION: "${AWS_REGION}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      PERSIST_STATE: "1"
+      DEBUG: "0"
+    volumes:
+      - ministack-data:/var/lib/localstack
+      - ./init/ministack:/docker-entrypoint-initaws.d/ready.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,json,sys; h=json.load(urllib.request.urlopen('http://localhost:4566/_localstack/health')); sys.exit(0 if h.get('ready_scripts',{}).get('status','completed')=='completed' else 1)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  seeds:
+    - path: init/ministack/init.sh
+      template: ministack/init.sh
+      executable: true
+  appEnv:
+    AWS_ENDPOINT_URL: "http://localhost:${MINISTACK_PORT}"
+    AWS_REGION: "${AWS_REGION}"
+    AWS_DEFAULT_REGION: "${AWS_REGION}"
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+    SPRING_CLOUD_AWS_ENDPOINT: "http://localhost:${MINISTACK_PORT}"
+    SPRING_CLOUD_AWS_REGION_STATIC: "${AWS_REGION}"
+  notes: SDK v2 honours AWS_ENDPOINT_URL automatically; older SDKs need an explicit endpoint override (see .dock/app.env).
+
+- id: s3
+  name: Amazon S3
+  summary: Object storage; buckets found in config are created on start.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: s3
+  aliases: [minio, object-storage]
+  detect:
+    dependencies:
+      - software.amazon.awssdk:s3
+      - com.amazonaws:aws-java-sdk-s3
+      - "*:spring-cloud-aws-starter-s3"
+      - io.awspring.cloud:spring-cloud-aws-s3
+      - "@aws-sdk/client-s3"
+      - "@aws-sdk/lib-storage"
+      - io.minio:minio
+      - minio
+      - github.com/aws/aws-sdk-go-v2/service/s3
+      - github.com/aws/aws-sdk-go/service/s3
+      - AWSSDK.S3
+    patterns:
+      - "\\bs3://"
+      - "s3[.-][a-z0-9-]*\\.?amazonaws\\.com"
+      - "\\bS3Client\\b|\\bAmazonS3\\b|\\bS3Template\\b"
+      - "aws_s3_bucket"
+  extract:
+    buckets: "(?:\\bbucket(?:-name|Name|_name)?[ \\t]*[:=][ \\t]*[\"']?|\\bs3://)(?<v>[a-z0-9][a-z0-9.-]{2,62})"
+  appEnv:
+    S3_ENDPOINT: "http://localhost:${MINISTACK_PORT}"
+    S3_FORCE_PATH_STYLE: "true"
+
+- id: sqs
+  name: Amazon SQS
+  summary: Queues found in config are created on start.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: sqs
+  detect:
+    dependencies:
+      - software.amazon.awssdk:sqs
+      - com.amazonaws:aws-java-sdk-sqs
+      - "*:spring-cloud-aws-starter-sqs"
+      - io.awspring.cloud:spring-cloud-aws-sqs
+      - com.amazonaws:amazon-sqs-java-messaging-lib
+      - "@aws-sdk/client-sqs"
+      - sqs-consumer
+      - sqs-producer
+      - github.com/aws/aws-sdk-go-v2/service/sqs
+      - AWSSDK.SQS
+    patterns:
+      - "sqs\\.[a-z0-9-]+\\.amazonaws\\.com"
+      - "\\bSqsClient\\b|\\bAmazonSQS\\b|@SqsListener|\\bSqsTemplate\\b"
+      - "aws_sqs_queue"
+  extract:
+    sqs_queues: "(?:sqs\\.[a-z0-9-]+\\.amazonaws\\.com/\\d{12}/|@SqsListener\\s*\\([^)]*\"|\\bqueue(?:-name|Name|_name|-url|Url|_url)?[ \\t]*[:=][ \\t]*[\"']?)(?<v>[a-zA-Z][a-zA-Z0-9_-]{2,79}(?:\\.fifo)?)"
+
+- id: sns
+  name: Amazon SNS
+  summary: Topics found in ARNs are created on start.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: sns
+  detect:
+    dependencies:
+      - software.amazon.awssdk:sns
+      - com.amazonaws:aws-java-sdk-sns
+      - "*:spring-cloud-aws-starter-sns"
+      - io.awspring.cloud:spring-cloud-aws-sns
+      - "@aws-sdk/client-sns"
+      - github.com/aws/aws-sdk-go-v2/service/sns
+      - AWSSDK.SimpleNotificationService
+    patterns:
+      - "arn:aws:sns:"
+      - "\\bSnsClient\\b|\\bAmazonSNS\\b|\\bSnsTemplate\\b"
+      - "aws_sns_topic"
+  extract:
+    sns_topics: "(?:arn:aws:sns:[a-z0-9-]+:\\d{12}:|\\btopic-?arn[ \\t]*[:=][ \\t]*[\"']?arn:aws:sns:[a-z0-9-]*:\\d*:)(?<v>[a-zA-Z][a-zA-Z0-9_-]{2,255}(?:\\.fifo)?)"
+
+- id: dynamodb
+  name: Amazon DynamoDB
+  summary: Tables found in config are created with a `pk` hash key.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: dynamodb
+  detect:
+    dependencies:
+      - software.amazon.awssdk:dynamodb
+      - software.amazon.awssdk:dynamodb-enhanced
+      - com.amazonaws:aws-java-sdk-dynamodb
+      - "*:spring-cloud-aws-starter-dynamodb"
+      - "*:spring-data-dynamodb"
+      - "@aws-sdk/client-dynamodb"
+      - "@aws-sdk/lib-dynamodb"
+      - dynamoose
+      - pynamodb
+      - github.com/aws/aws-sdk-go-v2/service/dynamodb
+      - AWSSDK.DynamoDBv2
+    patterns:
+      - "\\bDynamoDbClient\\b|\\bAmazonDynamoDB\\b|@DynamoDbBean|\\bDynamoDbTemplate\\b"
+      - "dynamodb\\.[a-z0-9-]+\\.amazonaws\\.com"
+      - "aws_dynamodb_table"
+  extract:
+    tables: "(?:@DynamoDbBean[\\s\\S]{0,200}?tableName\\s*=\\s*\"|\\btable(?:-name|Name|_name)[ \\t]*[:=][ \\t]*[\"']?)(?<v>[a-zA-Z][a-zA-Z0-9._-]{2,254})"
+  notes: Tables are created with a `pk` (S) hash key; adjust .dock/init/ministack/init.sh if your schema differs.
+
+- id: secretsmanager
+  name: AWS Secrets Manager
+  summary: Secrets found in config are created with placeholder JSON.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: secretsmanager
+  aliases: [secrets-manager, aws-secrets]
+  detect:
+    dependencies:
+      - software.amazon.awssdk:secretsmanager
+      - com.amazonaws:aws-java-sdk-secretsmanager
+      - "*:spring-cloud-aws-starter-secrets-manager"
+      - com.amazonaws.secretsmanager:aws-secretsmanager-jdbc
+      - "*awssecrets*"
+      - "@aws-sdk/client-secrets-manager"
+      - github.com/aws/aws-sdk-go-v2/service/secretsmanager
+      - AWSSDK.SecretsManager
+    patterns:
+      - "aws-secretsmanager:"
+      - "\\bSecretsManagerClient\\b|\\bAWSSecretsManager\\b"
+      - "secretsmanager\\.[a-z0-9-]+\\.amazonaws\\.com"
+      - "aws_secretsmanager_secret"
+  extract:
+    secrets: "(?:aws-secretsmanager:|\\bsecret(?:-name|Name|_name|-id|Id|_id)[ \\t]*[:=][ \\t]*[\"']?)(?<v>[a-zA-Z][a-zA-Z0-9/_+=.@-]{2,254})"
+  notes: Secrets are created with placeholder JSON values; edit .dock/init/ministack/init.sh to match the keys your app reads.
+
+- id: ssm
+  name: AWS SSM Parameter Store
+  summary: Parameters found in config are created with placeholder values.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: ssm
+  aliases: [parameter-store, parametermanager]
+  detect:
+    dependencies:
+      - software.amazon.awssdk:ssm
+      - com.amazonaws:aws-java-sdk-ssm
+      - "*:spring-cloud-aws-starter-parameter-store"
+      - "*parametermanager*"
+      - "@aws-sdk/client-ssm"
+      - github.com/aws/aws-sdk-go-v2/service/ssm
+      - AWSSDK.SimpleSystemsManagement
+    patterns:
+      - "aws-parameterstore:"
+      - "\\bSsmClient\\b|\\bAWSSimpleSystemsManagement\\b"
+      - "aws_ssm_parameter"
+  extract:
+    parameters: "(?:aws-parameterstore:|\\bparameter(?:-name|Name|_name)?[ \\t]*[:=][ \\t]*[\"']?)(?<v>/[a-zA-Z0-9/_.-]{2,254})"
+
+- id: kinesis
+  name: Amazon Kinesis
+  summary: Streams found in config are created with one shard.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: kinesis
+  aliases: [firehose]
+  detect:
+    dependencies:
+      - software.amazon.awssdk:kinesis
+      - software.amazon.kinesis:amazon-kinesis-client
+      - com.amazonaws:aws-java-sdk-kinesis
+      - "*:spring-cloud-stream-binder-kinesis"
+      - "@aws-sdk/client-kinesis"
+      - github.com/aws/aws-sdk-go-v2/service/kinesis
+    patterns: ["\\bKinesisClient\\b|\\bAmazonKinesis\\b", "aws_kinesis_stream"]
+  extract:
+    streams: "\\bstream(?:-name|Name|_name)[ \\t]*[:=][ \\t]*[\"']?(?<v>[a-zA-Z][a-zA-Z0-9._-]{2,127})"
+
+- id: eventbridge
+  name: Amazon EventBridge
+  summary: Event bus API available; rules/targets must be created by your code or init.sh.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: events
+  detect:
+    dependencies:
+      - software.amazon.awssdk:eventbridge
+      - com.amazonaws:aws-java-sdk-eventbridge
+      - "@aws-sdk/client-eventbridge"
+    patterns: ["\\bEventBridgeClient\\b|\\bAmazonEventBridge\\b", "aws_cloudwatch_event_rule"]
+
+- id: kms
+  name: AWS KMS
+  summary: Key management API for encrypt/decrypt flows.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: kms
+  detect:
+    dependencies: [software.amazon.awssdk:kms, com.amazonaws:aws-java-sdk-kms, "@aws-sdk/client-kms"]
+    patterns: ["\\bKmsClient\\b|\\bAWSKMS\\b", "aws_kms_key"]
+
+- id: cloudwatch
+  name: Amazon CloudWatch
+  summary: Metrics and Logs APIs so SDK calls succeed locally.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: cloudwatch,logs
+  detect:
+    dependencies:
+      - software.amazon.awssdk:cloudwatch
+      - software.amazon.awssdk:cloudwatchlogs
+      - "*:micrometer-registry-cloudwatch*"
+      - "@aws-sdk/client-cloudwatch"
+      - "@aws-sdk/client-cloudwatch-logs"
+      - winston-cloudwatch
+    patterns: ["\\bCloudWatchClient\\b|\\bCloudWatchLogsClient\\b", "aws_cloudwatch_log_group"]
+  notes: Locally, prefer stdout logging and the prometheus/grafana pair for metrics.
+
+- id: stepfunctions
+  name: AWS Step Functions
+  summary: State machine API for local workflow execution.
+  category: aws
+  kind: provider-backed
+  provider: ministack
+  providerValue: stepfunctions
+  detect:
+    dependencies: [software.amazon.awssdk:sfn, "@aws-sdk/client-sfn"]
+    patterns: ["\\bSfnClient\\b|\\bAWSStepFunctions\\b", "aws_sfn_state_machine", "\"StartAt\"\\s*:"]
+
+- id: lambda
+  name: AWS Lambda
+  category: aws
+  kind: report-only
+  aliases: [serverless, sam]
+  detect:
+    dependencies:
+      - com.amazonaws:aws-lambda-java-core
+      - com.amazonaws:aws-lambda-java-events
+      - "*:spring-cloud-function-adapter-aws"
+      - "@types/aws-lambda"
+      - aws-lambda
+      - serverless
+      - aws-lambda-powertools
+      - Amazon.Lambda.Core
+    files: ["**/template.yaml", "**/template.yml", "**/serverless.yml", "**/samconfig.toml"]
+    patterns: ["AWS::Serverless::Function", "aws_lambda_function", "\\bRequestHandler<"]
+  notes: Run the function itself with `sam local start-api` / `sam local invoke` (pass --docker-network <project>-dock to reach dock services) or invoke your handler directly in tests. Downstream AWS services are on ministack.
+
+- id: aws-api-gateway
+  name: AWS API Gateway
+  category: aws
+  kind: report-only
+  detect:
+    patterns: ["AWS::Serverless::Api", "AWS::ApiGateway", "aws_api_gateway_rest_api", "aws_apigatewayv2_api", "execute-api\\.[a-z0-9-]+\\.amazonaws\\.com"]
+  notes: Fronts your service in the cloud; locally call the service directly (or `sam local start-api`).
+
+- id: aws-sdk
+  name: AWS SDK (generic)
+  category: aws
+  kind: report-only
+  detect:
+    dependencies: [aws-sdk, boto3, botocore, software.amazon.awssdk:bom, com.amazonaws:aws-java-sdk, com.amazonaws:aws-java-sdk-bom, github.com/aws/aws-sdk-go, "*:spring-cloud-aws-starter", "*:spring-cloud-aws-dependencies"]
+  notes: A generic AWS SDK is present. Specific services are resolved by their own signatures; if one is missing, add it explicitly (`dock add sqs`).
