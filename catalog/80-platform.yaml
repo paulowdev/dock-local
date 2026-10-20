@@ -56,3 +56,46 @@
   detect:
     files: ["**/sonar-project.properties"]
     patterns: ["sonar\\.(projectKey|host\\.url)"]
+
+- id: temporal
+  name: Temporal
+  category: platform
+  kind: service
+  summary: Temporal workflow orchestration platform - durable execution for long-running workflows.
+  detect:
+    dependencies:
+      - io.temporal:temporal-sdk
+      - "@temporalio/client"
+      - "@temporalio/worker"
+      - temporalio
+      - temporal-client
+      - github.com/temporalio/sdk-go*
+      - Temporalio.Client
+    patterns:
+      - "\\btemporal\\b"
+      - "TEMPORAL_"
+      - "newWorkflowClient"
+    env: [TEMPORAL_]
+  env:
+    TEMPORAL_PORT: "7233"
+    TEMPORAL_UI_PORT: "8233"
+  compose:
+    image: temporalio/auto-setup:1.24.2
+    ports:
+      - "${TEMPORAL_PORT}:7233"
+      - "${TEMPORAL_UI_PORT}:8233"
+    environment:
+      - DB=sqlite
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    volumes:
+      - temporal-data:/etc/temporal
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "localhost:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    TEMPORAL_HOST: "localhost:${TEMPORAL_PORT}"
+    TEMPORAL_NAMESPACE: default
+    TEMPORAL_ADDRESS: "localhost:${TEMPORAL_PORT}"
+  notes: Temporal UI available at http://localhost:8233 for workflow visualization and debugging.

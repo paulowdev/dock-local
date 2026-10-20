@@ -327,6 +327,106 @@
     SPRING_ARTEMIS_USER: "${ARTEMIS_USER}"
     SPRING_ARTEMIS_PASSWORD: "${ARTEMIS_PASSWORD}"
 
+- id: nats
+  name: NATS
+  category: messaging
+  kind: service
+  summary: NATS messaging system with JetStream persistence - lightweight cloud-native alternative to Kafka.
+  detect:
+    dependencies:
+      - nats
+      - nats.js
+      - "@nats-io/transport-node"
+      - asyncio-nats
+      - nats-py
+      - github.com/nats-io/nats.go
+      - github.com/nats-io/nats.net
+      - NATS.Client
+    patterns:
+      - "\\bnats://"
+      - "NATS_URL"
+      - "\\bnats\\b"
+    env: [NATS_]
+  env:
+    NATS_PORT: "4222"
+    NATS_HTTP_PORT: "8222"
+  compose:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "${NATS_PORT}:4222"
+      - "${NATS_HTTP_PORT}:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    NATS_URL: "nats://localhost:${NATS_PORT}"
+    NATS_SERVERS: "localhost:${NATS_PORT}"
+  notes: JetStream enabled by default (-js flag). Use NATS CLI or management UI for stream/consumer creation.
+
+- id: redpanda
+  name: Redpanda
+  category: messaging
+  kind: service
+  aliases: [kafka-alternative]
+  summary: Kafka-compatible streaming platform - 10x faster setup, no JVM/Zookeeper required.
+  detect:
+    dependencies:
+      - "@redpanda-data/client"
+      - redpanda-client
+    patterns:
+      - "\\bredpanda\\b"
+      - "REDPANDA_"
+    env: [REDPANDA_]
+  env:
+    REDPANDA_PORT: "9092"
+    REDPANDA_ADMIN_PORT: "9644"
+    REDPANDA_SCHEMA_REGISTRY_PORT: "8081"
+  compose:
+    image: redpandadata/redpanda:v24.2.4
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:${REDPANDA_PORT}
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:${REDPANDA_SCHEMA_REGISTRY_PORT}
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+    ports:
+      - "${REDPANDA_PORT}:19092"
+      - "${REDPANDA_ADMIN_PORT}:9644"
+      - "${REDPANDA_SCHEMA_REGISTRY_PORT}:8081"
+      - "18082:18082"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+  extract:
+    topics: "(?:topic(?:s|-name|Name|_name)?|destination|[\\w-]*[-_.]topic)[ \\t]*[:=][ \\t]*[\"']?(?<v>[a-zA-Z][a-zA-Z0-9._-]{2,200})"
+  seeds:
+    - path: init/redpanda/create-topics.sh
+      template: kafka/create-topics.sh
+      executable: true
+  appEnv:
+    SPRING_KAFKA_BOOTSTRAP_SERVERS: "localhost:${REDPANDA_PORT}"
+    KAFKA_BOOTSTRAP_SERVERS: "localhost:${REDPANDA_PORT}"
+    KAFKA_BROKERS: "localhost:${REDPANDA_PORT}"
+    REDPANDA_BROKERS: "localhost:${REDPANDA_PORT}"
+    SCHEMA_REGISTRY_URL: "http://localhost:${REDPANDA_SCHEMA_REGISTRY_PORT}"
+  notes: Fully Kafka API-compatible. Redpanda Console available at http://localhost:18082
+
 - id: azure-servicebus
   name: Azure Service Bus
   category: messaging

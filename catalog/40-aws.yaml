@@ -53,7 +53,7 @@
   kind: provider-backed
   provider: ministack
   providerValue: s3
-  aliases: [minio, object-storage]
+  aliases: [object-storage]
   detect:
     dependencies:
       - software.amazon.awssdk:s3
@@ -62,8 +62,6 @@
       - io.awspring.cloud:spring-cloud-aws-s3
       - "@aws-sdk/client-s3"
       - "@aws-sdk/lib-storage"
-      - io.minio:minio
-      - minio
       - github.com/aws/aws-sdk-go-v2/service/s3
       - github.com/aws/aws-sdk-go/service/s3
       - AWSSDK.S3
@@ -77,6 +75,58 @@
   appEnv:
     S3_ENDPOINT: "http://localhost:${MINISTACK_PORT}"
     S3_FORCE_PATH_STYLE: "true"
+
+- id: minio
+  name: Minio
+  summary: S3-compatible object storage - faster startup than full Ministack, dedicated Web UI.
+  category: aws
+  kind: service
+  aliases: [s3-storage]
+  detect:
+    dependencies:
+      - io.minio:minio
+      - minio
+      - minio-py
+      - github.com/minio/minio-go*
+    patterns:
+      - "\\bminio\\b"
+      - "MINIO_"
+    env: [MINIO_]
+  env:
+    MINIO_PORT: "9000"
+    MINIO_CONSOLE_PORT: "9001"
+    MINIO_ROOT_USER: "minioadmin"
+    MINIO_ROOT_PASSWORD: "minioadmin"
+  compose:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  extract:
+    buckets: "(?:\\bbucket(?:-name|Name|_name)?[ \\t]*[:=][ \\t]*[\"']?|\\bminio://)(?<v>[a-z0-9][a-z0-9.-]{2,62})"
+  seeds:
+    - path: init/minio/init.sh
+      template: minio/init.sh
+      executable: true
+  appEnv:
+    S3_ENDPOINT: "http://localhost:${MINIO_PORT}"
+    MINIO_ENDPOINT: "http://localhost:${MINIO_PORT}"
+    MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+    MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    MINIO_CONSOLE_URL: "http://localhost:${MINIO_CONSOLE_PORT}"
+    AWS_ACCESS_KEY_ID: "${MINIO_ROOT_USER}"
+    AWS_SECRET_ACCESS_KEY: "${MINIO_ROOT_PASSWORD}"
 
 - id: sqs
   name: Amazon SQS

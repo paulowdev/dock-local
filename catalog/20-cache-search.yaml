@@ -2,7 +2,7 @@
   name: Redis / ElastiCache
   category: cache
   kind: service
-  aliases: [elasticache, valkey]
+  aliases: [elasticache]
   summary: Redis 7 standing in for ElastiCache.
   detect:
     dependencies:
@@ -42,6 +42,43 @@
     SPRING_DATA_REDIS_HOST: localhost
     SPRING_DATA_REDIS_PORT: "${REDIS_PORT}"
     REDIS_URL: "redis://localhost:${REDIS_PORT}"
+
+- id: valkey
+  name: Valkey
+  category: cache
+  kind: service
+  summary: Valkey 8 - Linux Foundation fork of Redis, fully open-source and Redis-compatible.
+  detect:
+    dependencies:
+      - valkey
+      - valkey-client
+      - "@valkey/client"
+      - valkey-py
+      - github.com/valkey-io/valkey-go*
+    patterns:
+      - "\\bvalkey://"
+      - "\\bvalkey\\b"
+      - "VALKEY_"
+    env: [VALKEY_]
+  env:
+    VALKEY_PORT: "6379"
+  compose:
+    image: valkey/valkey:8-alpine
+    ports: ["${VALKEY_PORT}:6379"]
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  appEnv:
+    VALKEY_HOST: localhost
+    VALKEY_PORT: "${VALKEY_PORT}"
+    VALKEY_URL: "valkey://localhost:${VALKEY_PORT}"
+    # Compatibility with Redis clients
+    REDIS_URL: "redis://localhost:${VALKEY_PORT}"
 
 - id: hazelcast
   name: Hazelcast
@@ -167,3 +204,41 @@
       retries: 30
   appEnv:
     OPENSEARCH_URL: "http://localhost:${OPENSEARCH_PORT}"
+
+- id: meilisearch
+  name: Meilisearch
+  category: search
+  kind: service
+  summary: Meilisearch - Fast, typo-tolerant search engine alternative to Elasticsearch.
+  detect:
+    dependencies:
+      - meilisearch
+      - meilisearch-php
+      - meilisearch-js
+      - "@meilisearch/instant-meilisearch"
+      - meilisearch-python
+      - github.com/meilisearch/meilisearch-go*
+    patterns:
+      - "\\bmeilisearch\\b"
+      - "MEILI_"
+    env: [MEILI_]
+  env:
+    MEILISEARCH_PORT: "7700"
+    MEILI_MASTER_KEY: "dock-local-master-key"
+  compose:
+    image: getmeili/meilisearch:v1.10
+    ports: ["${MEILISEARCH_PORT}:7700"]
+    environment:
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
+      MEILI_ENV: development
+    volumes:
+      - meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --spider http://localhost:7700/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    MEILI_URL: "http://localhost:${MEILISEARCH_PORT}"
+    MEILI_HOST: "http://localhost:${MEILISEARCH_PORT}"
+    MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"

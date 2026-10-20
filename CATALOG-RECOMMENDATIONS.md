@@ -2,56 +2,23 @@
 
 This document contains recommendations for additional services to add to the dock-local catalog, expanding its capabilities and coverage of modern infrastructure patterns.
 
+## ✅ Recently Implemented
+
+The following services have been successfully added to the catalog:
+
+- **Valkey** (v0.2.0) - Linux Foundation fork of Redis
+- **Minio** (v0.2.0) - S3-compatible object storage
+- **NATS** (v0.2.0) - Lightweight cloud-native messaging
+- **Temporal** (v0.2.0) - Workflow orchestration platform
+- **QuestDB** (v0.2.0) - High-performance time-series database
+- **Meilisearch** (v0.2.0) - Fast typo-tolerant search engine
+- **Redpanda** (v0.2.0) - Kafka-compatible streaming platform
+
+---
+
 ## Priority 1: High-Demand Services
 
-### 1. **Valkey** (Redis Alternative)
-- **Category:** Cache & Search
-- **Rationale:** Valkey is the Linux Foundation fork of Redis, providing a truly open-source alternative
-- **Detection Hints:**
-  - Dependencies: `valkey`, `valkey-client`
-  - Environment variables: `VALKEY_URL`, `VALKEY_HOST`
-- **Image:** `valkey/valkey:latest`
-- **Benefits:** Community-driven, compatible with Redis clients, no licensing concerns
-
-### 2. **Minio** (S3-Compatible Object Storage)
-- **Category:** AWS / Storage
-- **Rationale:** Standalone S3-compatible storage, lighter than full LocalStack for S3-only use cases
-- **Detection Hints:**
-  - Dependencies: `minio`, `@aws-sdk/client-s3`
-  - Environment: `S3_ENDPOINT`, `MINIO_ENDPOINT`
-- **Image:** `minio/minio:latest`
-- **Benefits:** Faster startup than LocalStack, dedicated S3 UI, production-grade features
-
-### 3. **NATS** (Lightweight Messaging)
-- **Category:** Messaging
-- **Rationale:** Cloud-native messaging system, alternative to Kafka for simpler use cases
-- **Detection Hints:**
-  - Dependencies: `nats`, `nats.js`, `asyncio-nats`
-  - Patterns: `nats://`, `NATS_URL`
-- **Image:** `nats:latest`
-- **Benefits:** Extremely lightweight, built-in JetStream for persistence, Kubernetes-friendly
-
-### 4. **Temporal** (Workflow Orchestration)
-- **Category:** Platform
-- **Rationale:** Increasingly popular for durable execution and workflow orchestration
-- **Detection Hints:**
-  - Dependencies: `@temporalio/client`, `temporalio`
-  - Patterns: `temporal.NewClient`, `temporal_client`
-- **Image:** `temporalio/auto-setup:latest`
-- **Benefits:** Built-in UI, handles long-running workflows, fault-tolerant
-
-### 5. **QuestDB** (Time-Series Database)
-- **Category:** Database
-- **Rationale:** High-performance time-series DB with SQL compatibility
-- **Detection Hints:**
-  - Dependencies: `questdb`, `psycopg2` (with QuestDB patterns)
-  - Patterns: InfluxDB Line Protocol, Postgres wire protocol
-- **Image:** `questdb/questdb:latest`
-- **Benefits:** Faster than InfluxDB, SQL interface, excellent for metrics/IoT
-
-## Priority 2: Modern Alternatives
-
-### 6. **SurrealDB** (Multi-Model Database)
+### 1. **SurrealDB** (Multi-Model Database)
 - **Category:** NoSQL
 - **Rationale:** Next-gen multi-model database (document, graph, relational)
 - **Detection Hints:**
@@ -60,16 +27,7 @@ This document contains recommendations for additional services to add to the doc
 - **Image:** `surrealdb/surrealdb:latest`
 - **Benefits:** GraphQL-like queries, real-time subscriptions, embedded mode
 
-### 7. **Meilisearch** (Search Engine)
-- **Category:** Cache & Search
-- **Rationale:** Fast, typo-tolerant search alternative to Elasticsearch
-- **Detection Hints:**
-  - Dependencies: `meilisearch`, `meilisearch-php`, `meilisearch-js`
-  - Environment: `MEILI_MASTER_KEY`, `MEILI_URL`
-- **Image:** `getmeili/meilisearch:latest`
-- **Benefits:** Zero-config, instant search, smaller footprint than Elasticsearch
-
-### 8. **Dgraph** (Native GraphQL Database)
+### 2. **Dgraph** (Native GraphQL Database)
 - **Category:** NoSQL
 - **Rationale:** Built-for-GraphQL graph database
 - **Detection Hints:**
@@ -78,7 +36,7 @@ This document contains recommendations for additional services to add to the doc
 - **Image:** `dgraph/standalone:latest`
 - **Benefits:** Native GraphQL support, built-in full-text search, distributed
 
-### 9. **Camunda Platform 8** (Process Orchestration)
+### 3. **Camunda Platform 8** (Process Orchestration)
 - **Category:** Platform
 - **Rationale:** BPMN-based workflow engine (Zeebe)
 - **Detection Hints:**
@@ -87,7 +45,7 @@ This document contains recommendations for additional services to add to the doc
 - **Image:** `camunda/zeebe:latest`
 - **Benefits:** Visual workflow modeling, enterprise-grade, cloud-native
 
-### 10. **Apache Pulsar** (Distributed Messaging)
+### 4. **Apache Pulsar** (Distributed Messaging)
 - **Category:** Messaging
 - **Rationale:** Multi-tenancy pub/sub alternative to Kafka
 - **Detection Hints:**
@@ -96,9 +54,9 @@ This document contains recommendations for additional services to add to the doc
 - **Image:** `apachepulsar/pulsar:latest`
 - **Benefits:** Built-in multi-tenancy, geo-replication, tiered storage
 
-## Priority 3: Specialized Use Cases
+## Priority 2: Specialized Use Cases
 
-### 11. **ClickHouse** (Columnar OLAP Database)
+### 5. **ClickHouse** (Columnar OLAP Database)
 - **Category:** Database
 - **Rationale:** Fast analytical queries, popular for data warehousing
 - **Detection Hints:**
@@ -106,7 +64,7 @@ This document contains recommendations for additional services to add to the doc
   - JDBC: `jdbc:clickhouse://`
 - **Image:** `clickhouse/clickhouse-server:latest`
 
-### 12. **CockroachDB** (Distributed SQL)
+### 6. **CockroachDB** (Distributed SQL)
 - **Category:** Database
 - **Rationale:** Postgres-compatible distributed SQL database
 - **Detection Hints:**
@@ -114,16 +72,7 @@ This document contains recommendations for additional services to add to the doc
   - JDBC: `jdbc:postgresql://` with CockroachDB patterns
 - **Image:** `cockroachdb/cockroach:latest`
 
-### 13. **Redpanda** (Kafka Alternative)
-- **Category:** Messaging
-- **Rationale:** Kafka-compatible but simpler, no JVM/Zookeeper
-- **Detection Hints:**
-  - Same as Kafka but can be explicit alternative
-  - Environment: `REDPANDA_BROKERS`
-- **Image:** `redpandadata/redpanda:latest`
-- **Benefits:** 10x faster setup, lower resource usage, Kafka API compatible
-
-### 14. **Loki** (Log Aggregation)
+### 7. **Loki** (Log Aggregation)
 - **Category:** Observability
 - **Rationale:** Lightweight logs aggregation (pairs with Grafana)
 - **Detection Hints:**
@@ -131,7 +80,7 @@ This document contains recommendations for additional services to add to the doc
   - Patterns: LogQL queries
 - **Image:** `grafana/loki:latest`
 
-### 15. **Victoria Metrics** (Prometheus Alternative)
+### 8. **Victoria Metrics** (Prometheus Alternative)
 - **Category:** Observability
 - **Rationale:** Prometheus-compatible but more performant
 - **Detection Hints:**
@@ -143,14 +92,7 @@ This document contains recommendations for additional services to add to the doc
 
 | Service | Demand | Complexity | Impact | Priority |
 |---------|--------|------------|--------|----------|
-| Valkey | High | Low | High | **P0** |
-| Minio | High | Low | High | **P0** |
-| NATS | Medium | Low | Medium | **P1** |
-| Temporal | High | Medium | High | **P1** |
-| QuestDB | Medium | Low | Medium | **P1** |
-| Meilisearch | Medium | Low | Medium | **P1** |
-| Redpanda | Medium | Low | High | **P1** |
-| SurrealDB | Low | Medium | Medium | **P2** |
+| SurrealDB | Medium | Medium | Medium | **P1** |
 | Dgraph | Low | Medium | Low | **P2** |
 | Camunda | Low | High | Medium | **P2** |
 | Pulsar | Low | High | Medium | **P2** |
@@ -161,11 +103,12 @@ This document contains recommendations for additional services to add to the doc
 
 ## Next Steps for Implementation
 
-1. **Start with P0 services** (Valkey, Minio) - Easy wins with high demand
+1. **Review community feedback** on which P1-P3 services to prioritize
 2. **Add catalog entries** in appropriate `catalog/*.yaml` files
 3. **Create templates** in `templates/<service>/` for seed scripts
 4. **Update tests** with fixture projects that use these services
 5. **Document** in README service catalog table
+6. **Announce new services** in release notes
 
 ## Community Engagement Ideas
 

@@ -361,6 +361,51 @@
     - path: init/cassandra/init.cql
       template: cassandra/init.cql
 
+- id: questdb
+  name: QuestDB
+  category: database
+  kind: service
+  summary: High-performance time-series database with SQL and InfluxDB Line Protocol support.
+  detect:
+    dependencies:
+      - questdb
+      - questdb-client
+      - psycopg2
+      - org.questdb:questdb
+      - github.com/questdb/go-questdb-client
+    patterns:
+      - "\\bquestdb\\b"
+      - "QUESTDB_"
+    env: [QUESTDB_]
+  env:
+    QUESTDB_HTTP_PORT: "9000"
+    QUESTDB_PG_PORT: "8812"
+    QUESTDB_ILP_PORT: "9009"
+  compose:
+    image: questdb/questdb:8.1.1
+    ports:
+      - "${QUESTDB_HTTP_PORT}:9000"
+      - "${QUESTDB_PG_PORT}:8812"
+      - "${QUESTDB_ILP_PORT}:9009"
+    environment:
+      QDB_CAIRO_COMMIT_LAG: "1000"
+      QDB_PG_ENABLED: "true"
+      QDB_HTTP_ENABLED: "true"
+    volumes:
+      - questdb-data:/var/lib/questdb
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    QUESTDB_HTTP_URL: "http://localhost:${QUESTDB_HTTP_PORT}"
+    QUESTDB_PG_HOST: localhost
+    QUESTDB_PG_PORT: "${QUESTDB_PG_PORT}"
+    QUESTDB_ILP_HOST: localhost
+    QUESTDB_ILP_PORT: "${QUESTDB_ILP_PORT}"
+  notes: PostgreSQL wire protocol on port 8812, HTTP REST API on port 9000, InfluxDB Line Protocol (ILP) on port 9009. Web console at http://localhost:9000
+
 - id: h2
   name: H2 (embedded)
   category: database
