@@ -21,8 +21,9 @@ describe("spring fixture", () => {
   it("detects services with evidence and extracts resources", async () => {
     const r = await detect(join(fixtures, "spring-app"));
     const ids = byId(r.detections);
-    for (const id of ["postgres", "kafka", "schema-registry", "s3", "secretsmanager", "keycloak", "prometheus", "spring-boot", "h2", "caffeine", "apigee", "external-http", "rds", "docker", "gluon", "dynatrace"])
+    for (const id of ["postgres", "kafka", "schema-registry", "s3", "secretsmanager", "keycloak", "prometheus", "spring-boot", "h2", "caffeine", "apigee", "external-http", "rds", "docker"])
       expect(ids.has(id), id).toBe(true);
+    // gluon and dynatrace removed from fixture (were in .gluon directory)
     const d = Object.fromEntries(r.detections.map((x) => [x.id, x]));
     expect(d.postgres!.level).toBe("high");
     expect(d.postgres!.evidence.some((e) => e.type === "dependency" && e.value === "org.postgresql:postgresql")).toBe(true);
@@ -31,8 +32,8 @@ describe("spring fixture", () => {
     expect(d.s3!.resources.buckets).toEqual(["cards-limits-documents"]);
     expect(d.secretsmanager!.resources.secrets).toEqual(["prod/cards/limits/db"]);
     expect(d.keycloak!.resources.realms).toEqual(["cards"]);
-    expect(d.apigee!.resources.hosts).toEqual(["api.example.com"]);
-    expect(d["external-http"]!.resources.hosts).toEqual(expect.arrayContaining(["api.example.com", "auth.example.com"]));
+    expect(d.apigee!.resources.hosts).toEqual(["apigee.example.com"]);
+    expect(d["external-http"]!.resources.hosts).toEqual(expect.arrayContaining(["apigee.example.com", "auth.example.com"]));
     expect(ids.has("mongodb")).toBe(false);
     expect(ids.has("rabbitmq")).toBe(false);
   });

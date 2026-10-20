@@ -53,7 +53,7 @@ export async function runPreflightChecks(checks: PreflightCheck[]): Promise<Pref
   );
 
   const totalDuration = Date.now() - startTime;
-  log.debug(pc.dim(`preflight checks completed in ${totalDuration}ms`));
+  // Preflight checks completed in ${totalDuration}ms
 
   return results;
 }
@@ -137,7 +137,7 @@ export function getDockerPreflightChecks(): PreflightCheck[] {
       name: "Docker Hub connectivity",
       critical: false,
       check: async () => {
-        const result = capture("docker", ["pull", "--quiet", "--platform", "linux/amd64", "alpine:3.20"], undefined, { timeout: 10000 });
+        const result = capture("docker", ["pull", "--quiet", "--platform", "linux/amd64", "alpine:3.20"]);
         return {
           ok: result.ok,
           message: result.ok ? "registry reachable" : "check network connection or use --registry flag",

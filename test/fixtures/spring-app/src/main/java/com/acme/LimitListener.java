@@ -10,6 +10,6 @@ public class LimitListener {
 
   @KafkaListener(topics = "cards.limit.audit", groupId = "cards-limits")
   public void onAudit(String payload) {
-    restTemplate.postForObject("https://api.example.com/v1/notify", payload, Void.class);
+    restTemplate.postForObject("https://apigee.example.com/v1/notify", payload, Void.class);
   }
 }

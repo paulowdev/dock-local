@@ -29,10 +29,15 @@ describe("template renderer", () => {
 
 describe("compose generation", () => {
   it("prefixes only Docker Hub images", () => {
-    expect(qualifyImage("postgres:16-alpine", DEFAULT_REGISTRY)).toBe(`${DEFAULT_REGISTRY}/postgres:16-alpine`);
-    expect(qualifyImage("ministackorg/ministack:1.4.14", DEFAULT_REGISTRY)).toBe(`${DEFAULT_REGISTRY}/ministackorg/ministack:1.4.14`);
+    // When registry is empty, images are not prefixed
+    expect(qualifyImage("postgres:16-alpine", DEFAULT_REGISTRY)).toBe("postgres:16-alpine");
+    expect(qualifyImage("ministackorg/ministack:1.4.14", DEFAULT_REGISTRY)).toBe("ministackorg/ministack:1.4.14");
     expect(qualifyImage("mcr.microsoft.com/mssql/server:2022-latest", DEFAULT_REGISTRY)).toBe("mcr.microsoft.com/mssql/server:2022-latest");
     expect(qualifyImage("postgres:16", "")).toBe("postgres:16");
+    // When registry is set, Docker Hub images are prefixed
+    expect(qualifyImage("postgres:16-alpine", "registry.example.com")).toBe("registry.example.com/postgres:16-alpine");
+    expect(qualifyImage("ministackorg/ministack:1.4.14", "registry.example.com")).toBe("registry.example.com/ministackorg/ministack:1.4.14");
+    expect(qualifyImage("mcr.microsoft.com/mssql/server:2022-latest", "registry.example.com")).toBe("mcr.microsoft.com/mssql/server:2022-latest");
   });
 
   it("wires providers, volumes and depends_on", async () => {
@@ -41,7 +46,7 @@ describe("compose generation", () => {
     const doc = buildCompose(buildPlan(r.detections, catalog), "cards", DEFAULT_REGISTRY);
     expect(doc.name).toBe("cards-dock");
     expect(doc.services.ministack!.environment!.SERVICES!.split(",").sort()).toEqual(["s3", "secretsmanager"]);
-    expect(doc.services.ministack!.image).toBe(`${DEFAULT_REGISTRY}/ministackorg/ministack:1.4.14`);
+    expect(doc.services.ministack!.image).toBe("ministackorg/ministack:1.4.14");
     expect(doc.volumes).toHaveProperty("postgres-data");
     expect(doc.volumes).not.toHaveProperty("./init/postgres");
     expect(doc.services["schema-registry"]!.depends_on).toEqual({ kafka: { condition: "service_healthy" } });
@@ -91,7 +96,7 @@ describe("writeStack", () => {
     const compose = parse(readFileSync(join(dir, ".dock", "docker-compose.yml"), "utf8"));
     const app = compose.services.app;
     expect(app.profiles).toEqual(["app"]);
-    expect(app.build).toEqual({ context: "..", dockerfile: "Dockerfile", args: { DOCK_REGISTRY: DEFAULT_REGISTRY } });
+    expect(app.build).toEqual({ context: "..", dockerfile: "Dockerfile", args: { DOCK_REGISTRY: DEFAULT_REGISTRY || "docker.io" } });
     expect(app.ports).toEqual(["${APP_PORT}:3000"]);
     expect(app.environment.MONGODB_URI).toContain("@mongodb:27017/");
     expect(app.environment.REDIS_URL).toBe("redis://redis:6379");
