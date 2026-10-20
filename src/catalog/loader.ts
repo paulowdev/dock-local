@@ -6,7 +6,7 @@ import type { Catalog, CatalogEntry, Category, Kind } from "./types.js";
 
 const CATEGORIES: Category[] = [
   "database", "nosql", "cache", "messaging", "search", "storage", "aws",
-  "security", "observability", "integration", "platform", "runtime",
+  "security", "observability", "integration", "platform", "runtime", "ai-ml",
 ];
 const KINDS: Kind[] = ["service", "provider-backed", "external", "report-only", "runtime"];
 

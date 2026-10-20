@@ -17,7 +17,8 @@ export type Category =
   | "observability"
   | "integration"
   | "platform"
-  | "runtime";
+  | "runtime"
+  | "ai-ml";
 
 /**
  * - service:          runs as its own compose service (postgres, kafka, ...)

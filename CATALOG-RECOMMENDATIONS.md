@@ -6,19 +6,115 @@ This document contains recommendations for additional services to add to the doc
 
 The following services have been successfully added to the catalog:
 
-- **Valkey** (v0.2.0) - Linux Foundation fork of Redis
-- **Minio** (v0.2.0) - S3-compatible object storage
-- **NATS** (v0.2.0) - Lightweight cloud-native messaging
-- **Temporal** (v0.2.0) - Workflow orchestration platform
-- **QuestDB** (v0.2.0) - High-performance time-series database
-- **Meilisearch** (v0.2.0) - Fast typo-tolerant search engine
-- **Redpanda** (v0.2.0) - Kafka-compatible streaming platform
+**v0.2.0 - Infrastructure Services:**
+
+- **Valkey** - Linux Foundation fork of Redis
+- **Minio** - S3-compatible object storage
+- **NATS** - Lightweight cloud-native messaging
+- **Temporal** - Workflow orchestration platform
+- **QuestDB** - High-performance time-series database
+- **Meilisearch** - Fast typo-tolerant search engine
+- **Redpanda** - Kafka-compatible streaming platform
+
+**v0.3.0 - AI/ML Services:**
+
+- **Ollama** - Run LLMs locally (Llama 3, Mistral, Gemma)
+- **LiteLLM Proxy** - Unified API for 100+ LLM providers
+- **Qdrant** - High-performance vector database
+- **ChromaDB** - Lightweight vector store
+- **LocalAI** - OpenAI-compatible local inference
 
 ---
 
 ## Priority 1: High-Demand Services
 
-### 1. **SurrealDB** (Multi-Model Database)
+### AI/ML & LLM Services
+
+#### 1. **vLLM** (High-Performance LLM Inference)
+
+- **Category:** AI/ML
+- **Rationale:** Production-grade LLM serving with PagedAttention for high throughput
+- **Detection Hints:**
+  - Dependencies: `vllm`, `vllm-client`
+  - Patterns: `VLLM_`, `vllm.entrypoints`
+- **Image:** `vllm/vllm-openai:latest`
+- **Benefits:** 24x faster than HuggingFace Transformers, continuous batching, OpenAI-compatible API
+
+#### 2. **Text Generation WebUI** (Oobabooga)
+
+- **Category:** AI/ML
+- **Rationale:** Popular web UI for running LLMs with extensions and API
+- **Detection Hints:**
+  - Patterns: `text-generation-webui`, `oobabooga`
+- **Image:** `atinoda/text-generation-webui:default`
+- **Benefits:** User-friendly interface, model switching, chat interface, API mode
+
+#### 3. **Weaviate** (AI-Native Vector Database)
+
+- **Category:** AI/ML
+- **Rationale:** Vector database with built-in ML models and hybrid search
+- **Detection Hints:**
+  - Dependencies: `weaviate-client`, `weaviate-python-client`
+  - Patterns: `WEAVIATE_`, `weaviate://`
+- **Image:** `semitechnologies/weaviate:latest`
+- **Benefits:** Built-in vectorization, multi-modal search, GraphQL API
+
+#### 4. **Milvus** (Scalable Vector Database)
+
+- **Category:** AI/ML
+- **Rationale:** Cloud-native vector database for billion-scale similarity search
+- **Detection Hints:**
+  - Dependencies: `pymilvus`, `milvus-client`
+  - Patterns: `MILVUS_`, `milvus.connect`
+- **Image:** `milvusdb/milvus:latest`
+- **Benefits:** Trillion-vector scale, hybrid search, GPU acceleration support
+
+#### 5. **OpenAI API Mock Server**
+
+- **Category:** AI/ML
+- **Rationale:** Mock OpenAI API responses for testing without API costs
+- **Detection Hints:**
+  - Test files using OpenAI SDK
+  - Patterns: `OPENAI_API_KEY`, `openai.Completion`
+- **Image:** Custom WireMock configuration
+- **Benefits:** Cost-free testing, deterministic responses, offline development
+
+### Quantum Computing Services
+
+#### 6. **Qiskit Runtime Simulator**
+
+- **Category:** Quantum
+- **Rationale:** IBM's quantum circuit simulator for local development
+- **Detection Hints:**
+  - Dependencies: `qiskit`, `qiskit-ibm-runtime`
+  - Patterns: `from qiskit import`, `QuantumCircuit`
+- **Image:** Custom Python image with Qiskit
+- **Benefits:** Test quantum algorithms locally before cloud execution
+
+#### 7. **Amazon Braket Local Simulator**
+
+- **Category:** Quantum
+- **Rationale:** AWS quantum simulator for local testing
+- **Detection Hints:**
+  - Dependencies: `amazon-braket-sdk`, `braket`
+  - Patterns: `from braket.`, `LocalSimulator`
+- **Image:** `amazon-braket-local-simulator:latest`
+- **Benefits:** Simulate quantum circuits locally, compatible with AWS Braket
+
+#### 8. **PennyLane Quantum ML**
+
+- **Category:** Quantum
+- **Rationale:** Quantum machine learning framework with simulators
+- **Detection Hints:**
+  - Dependencies: `pennylane`, `pennylane-qiskit`
+  - Patterns: `import pennylane`, `qml.device`
+- **Image:** Custom Python image with PennyLane
+- **Benefits:** Quantum ML, automatic differentiation, multiple backends
+
+### Infrastructure Services
+
+#### 9. **SurrealDB** (Multi-Model Database)
+
 - **Category:** NoSQL
 - **Rationale:** Next-gen multi-model database (document, graph, relational)
 - **Detection Hints:**
@@ -27,7 +123,8 @@ The following services have been successfully added to the catalog:
 - **Image:** `surrealdb/surrealdb:latest`
 - **Benefits:** GraphQL-like queries, real-time subscriptions, embedded mode
 
-### 2. **Dgraph** (Native GraphQL Database)
+#### 10. **Dgraph** (Native GraphQL Database)
+
 - **Category:** NoSQL
 - **Rationale:** Built-for-GraphQL graph database
 - **Detection Hints:**
@@ -36,7 +133,10 @@ The following services have been successfully added to the catalog:
 - **Image:** `dgraph/standalone:latest`
 - **Benefits:** Native GraphQL support, built-in full-text search, distributed
 
-### 3. **Camunda Platform 8** (Process Orchestration)
+## Priority 2: Specialized Use Cases
+
+### 11. **Camunda Platform 8** (Process Orchestration)
+
 - **Category:** Platform
 - **Rationale:** BPMN-based workflow engine (Zeebe)
 - **Detection Hints:**
@@ -45,7 +145,8 @@ The following services have been successfully added to the catalog:
 - **Image:** `camunda/zeebe:latest`
 - **Benefits:** Visual workflow modeling, enterprise-grade, cloud-native
 
-### 4. **Apache Pulsar** (Distributed Messaging)
+### 12. **Apache Pulsar** (Distributed Messaging)
+
 - **Category:** Messaging
 - **Rationale:** Multi-tenancy pub/sub alternative to Kafka
 - **Detection Hints:**
@@ -54,9 +155,8 @@ The following services have been successfully added to the catalog:
 - **Image:** `apachepulsar/pulsar:latest`
 - **Benefits:** Built-in multi-tenancy, geo-replication, tiered storage
 
-## Priority 2: Specialized Use Cases
+### 13. **ClickHouse** (Columnar OLAP Database)
 
-### 5. **ClickHouse** (Columnar OLAP Database)
 - **Category:** Database
 - **Rationale:** Fast analytical queries, popular for data warehousing
 - **Detection Hints:**
@@ -64,7 +164,8 @@ The following services have been successfully added to the catalog:
   - JDBC: `jdbc:clickhouse://`
 - **Image:** `clickhouse/clickhouse-server:latest`
 
-### 6. **CockroachDB** (Distributed SQL)
+### 14. **CockroachDB** (Distributed SQL)
+
 - **Category:** Database
 - **Rationale:** Postgres-compatible distributed SQL database
 - **Detection Hints:**
@@ -72,7 +173,8 @@ The following services have been successfully added to the catalog:
   - JDBC: `jdbc:postgresql://` with CockroachDB patterns
 - **Image:** `cockroachdb/cockroach:latest`
 
-### 7. **Loki** (Log Aggregation)
+### 15. **Loki** (Log Aggregation)
+
 - **Category:** Observability
 - **Rationale:** Lightweight logs aggregation (pairs with Grafana)
 - **Detection Hints:**
@@ -80,7 +182,8 @@ The following services have been successfully added to the catalog:
   - Patterns: LogQL queries
 - **Image:** `grafana/loki:latest`
 
-### 8. **Victoria Metrics** (Prometheus Alternative)
+### 16. **Victoria Metrics** (Prometheus Alternative)
+
 - **Category:** Observability
 - **Rationale:** Prometheus-compatible but more performant
 - **Detection Hints:**
@@ -92,11 +195,19 @@ The following services have been successfully added to the catalog:
 
 | Service | Demand | Complexity | Impact | Priority |
 |---------|--------|------------|--------|----------|
-| SurrealDB | Medium | Medium | Medium | **P1** |
+| vLLM | High | Medium | High | **P1** |
+| Weaviate | Medium | Medium | Medium | **P1** |
+| Milvus | Medium | Medium | Medium | **P1** |
+| Text Gen WebUI | Medium | Low | Medium | **P2** |
+| OpenAI Mock | Medium | Low | Medium | **P2** |
+| Qiskit | Low | Medium | Medium | **P2** |
+| Braket Simulator | Low | Medium | Low | **P2** |
+| PennyLane | Low | Medium | Low | **P2** |
+| SurrealDB | Medium | Medium | Medium | **P2** |
 | Dgraph | Low | Medium | Low | **P2** |
 | Camunda | Low | High | Medium | **P2** |
 | Pulsar | Low | High | Medium | **P2** |
-| ClickHouse | Medium | Medium | Medium | **P2** |
+| ClickHouse | Medium | Medium | Medium | **P3** |
 | CockroachDB | Low | Medium | Low | **P3** |
 | Loki | Medium | Low | Medium | **P3** |
 | Victoria Metrics | Low | Low | Low | **P3** |

@@ -1,6 +1,6 @@
 {
   "name": "dock-local",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Detect the infrastructure a project depends on (databases, brokers, caches, AWS services, external APIs) and generate a ready-to-run local Docker Compose stack with seeds.",
   "type": "module",
   "license": "MIT",

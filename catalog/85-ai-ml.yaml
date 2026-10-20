@@ -1,0 +1,201 @@
+# AI/ML and LLM infrastructure services
+
+- id: ollama
+  name: Ollama
+  category: ai-ml
+  kind: service
+  summary: Run large language models locally - Llama 3, Mistral, Gemma, CodeLlama, and 100+ models with OpenAI-compatible API.
+  detect:
+    dependencies:
+      - ollama
+      - ollama-python
+      - ollama-js
+      - langchain-ollama
+      - "@langchain/ollama"
+    patterns:
+      - "\\bollama\\b"
+      - "OLLAMA_HOST|OLLAMA_API"
+      - "ollama\\.ai"
+    env: [OLLAMA_]
+  env:
+    OLLAMA_PORT: "11434"
+  compose:
+    image: ollama/ollama:latest
+    ports: ["${OLLAMA_PORT}:11434"]
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    OLLAMA_HOST: "http://localhost:${OLLAMA_PORT}"
+    OLLAMA_API_BASE: "http://localhost:${OLLAMA_PORT}"
+  notes: |
+    Pull models with: docker exec -it ollama ollama pull llama3.2
+    Models available at http://localhost:11434/api/tags
+    OpenAI-compatible endpoint: http://localhost:11434/v1/chat/completions
+
+- id: litellm
+  name: LiteLLM Proxy
+  category: ai-ml
+  kind: service
+  summary: Unified OpenAI-compatible API for 100+ LLM providers (OpenAI, Anthropic, Gemini, Ollama) with caching, rate limiting, and cost tracking.
+  detect:
+    dependencies:
+      - litellm
+      - "@litellm/proxy"
+    patterns:
+      - "\\blitellm\\b"
+      - "LITELLM_"
+      - "from litellm import"
+    env: [LITELLM_]
+  env:
+    LITELLM_PORT: "4000"
+    LITELLM_MASTER_KEY: "sk-dock-local-1234"
+  compose:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports: ["${LITELLM_PORT}:4000"]
+    environment:
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
+      LITELLM_SALT_KEY: "dock-local-salt"
+      DATABASE_URL: "sqlite:////data/litellm.db"
+    volumes:
+      - litellm-data:/data
+    command: ["--config", "/data/config.yaml", "--detailed_debug"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  seeds:
+    - path: init/litellm/config.yaml
+      template: litellm/config.yaml
+  appEnv:
+    LITELLM_BASE_URL: "http://localhost:${LITELLM_PORT}"
+    LITELLM_API_KEY: "${LITELLM_MASTER_KEY}"
+    OPENAI_API_BASE: "http://localhost:${LITELLM_PORT}/v1"
+  notes: |
+    UI available at http://localhost:4000
+    Configure providers in .dock/init/litellm/config.yaml
+    Supports: OpenAI, Anthropic, Gemini, Bedrock, Azure, Ollama, and 100+ more
+
+- id: qdrant
+  name: Qdrant
+  category: ai-ml
+  kind: service
+  summary: High-performance vector database for semantic search and RAG applications with HNSW indexing.
+  detect:
+    dependencies:
+      - qdrant-client
+      - "@qdrant/client"
+      - qdrant_client
+      - github.com/qdrant/go-client
+    patterns:
+      - "\\bqdrant\\b"
+      - "QDRANT_"
+      - "QdrantClient"
+    env: [QDRANT_]
+  env:
+    QDRANT_HTTP_PORT: "6333"
+    QDRANT_GRPC_PORT: "6334"
+  compose:
+    image: qdrant/qdrant:v1.11.3
+    ports:
+      - "${QDRANT_HTTP_PORT}:6333"
+      - "${QDRANT_GRPC_PORT}:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    QDRANT_URL: "http://localhost:${QDRANT_HTTP_PORT}"
+    QDRANT_HOST: "localhost"
+    QDRANT_HTTP_PORT: "${QDRANT_HTTP_PORT}"
+    QDRANT_GRPC_PORT: "${QDRANT_GRPC_PORT}"
+  notes: |
+    Web UI available at http://localhost:6333/dashboard
+    API documentation at http://localhost:6333/docs
+    Supports cosine, dot product, and euclidean distance metrics
+
+- id: chroma
+  name: ChromaDB
+  category: ai-ml
+  kind: service
+  summary: Lightweight open-source vector database for AI applications - the simplest way to add embeddings to your app.
+  detect:
+    dependencies:
+      - chromadb
+      - "@chromadb/chromadb"
+    patterns:
+      - "\\bchroma\\b"
+      - "CHROMA_"
+      - "chromadb\\.Client"
+    env: [CHROMA_]
+  env:
+    CHROMA_PORT: "8000"
+  compose:
+    image: chromadb/chroma:0.5.20
+    ports: ["${CHROMA_PORT}:8000"]
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    CHROMA_HOST: "localhost"
+    CHROMA_PORT: "${CHROMA_PORT}"
+    CHROMA_URL: "http://localhost:${CHROMA_PORT}"
+  notes: |
+    ChromaDB is designed for simplicity and ease of use
+    Supports in-memory and persistent storage
+    Perfect for prototyping RAG applications
+
+- id: localai
+  name: LocalAI
+  category: ai-ml
+  kind: service
+  summary: Drop-in OpenAI-compatible API for running LLMs locally - supports llama.cpp, Whisper, Stable Diffusion, and more.
+  detect:
+    dependencies:
+      - localai
+      - localai-client
+    patterns:
+      - "\\blocalai\\b"
+      - "LOCALAI_"
+      - "localai\\.io"
+    env: [LOCALAI_]
+  env:
+    LOCALAI_PORT: "8080"
+  compose:
+    image: localai/localai:latest-aio-cpu
+    ports: ["${LOCALAI_PORT}:8080"]
+    volumes:
+      - localai-models:/build/models
+    environment:
+      THREADS: "4"
+      CONTEXT_SIZE: "2048"
+      DEBUG: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  appEnv:
+    LOCALAI_BASE_URL: "http://localhost:${LOCALAI_PORT}"
+    OPENAI_API_BASE: "http://localhost:${LOCALAI_PORT}/v1"
+    LOCALAI_API_KEY: "not-needed"
+  notes: |
+    OpenAI-compatible endpoints at http://localhost:8080/v1/*
+    Supports text generation, embeddings, audio transcription, image generation
+    Download models via gallery: http://localhost:8080/browse
+    No GPU required (CPU-only image)
