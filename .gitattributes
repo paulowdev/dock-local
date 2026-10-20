@@ -1,0 +1,16 @@
+# Ensure consistent line endings across platforms
+* text=auto eol=lf
+
+# Explicitly set line endings for text files
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
