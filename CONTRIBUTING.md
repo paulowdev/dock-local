@@ -48,7 +48,7 @@ This is one of the most valuable contributions! See the detailed guide below.
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/dock-local.git
+git clone https://github.com/<paulowdev>/dock-local.git
 cd dock-local
 
 # Install dependencies

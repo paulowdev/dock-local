@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Request support for a new infrastructure service in the dock-local catalog.
-        Before submitting, check [CATALOG-RECOMMENDATIONS.md](https://github.com/your-username/dock-local/blob/main/CATALOG-RECOMMENDATIONS.md) to see if it's already planned.
+        Before submitting, check [CATALOG-RECOMMENDATIONS.md](https://github.com/paulowdev/dock-local/blob/main/CATALOG-RECOMMENDATIONS.md) to see if it's already planned.
 
   - type: input
     id: service-name

@@ -1,11 +1,11 @@
 blank_issues_enabled: true
 contact_links:
   - name: 💬 GitHub Discussions
-    url: https://github.com/your-username/dock-local/discussions
+    url: https://github.com/paulowdev/dock-local/discussions
     about: Ask questions and discuss ideas with the community
   - name: 📚 Documentation
-    url: https://github.com/your-username/dock-local#readme
+    url: https://github.com/paulowdev/dock-local#readme
     about: Read the documentation for usage guides and examples
   - name: 🎯 Catalog Recommendations
-    url: https://github.com/your-username/dock-local/blob/main/CATALOG-RECOMMENDATIONS.md
+    url: https://github.com/paulowdev/dock-local/blob/main/CATALOG-RECOMMENDATIONS.md
     about: View planned services and priorities

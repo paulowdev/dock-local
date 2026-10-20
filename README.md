@@ -6,13 +6,13 @@
 > 🌐 **Language:** English · [Versão em Português (README.pt-BR.md)](README.pt-BR.md)
 > 📚 **Documentation:** [User Guide](docs/USER-GUIDE.md) · [Developer Guide](docs/DEVELOPER-GUIDE.md) · [Guia do Usuário (PT)](docs/GUIA-DO-USUARIO.md) · [Guia do Desenvolvedor (PT)](docs/GUIA-DO-DESENVOLVEDOR.md)
 
-[![CI](https://github.com/your-username/dock-local/workflows/CI/badge.svg)](https://github.com/your-username/dock-local/actions/workflows/ci.yml)
+[![CI](https://github.com/paulowdev/dock-local/workflows/CI/badge.svg)](https://github.com/paulowdev/dock-local/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D26.0-brightgreen.svg)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose%20v2%2B-2496ED.svg)](https://www.docker.com/)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)]()
-[![GitHub issues](https://img.shields.io/github/issues/your-username/dock-local)](https://github.com/your-username/dock-local/issues)
-[![GitHub stars](https://img.shields.io/github/stars/your-username/dock-local)](https://github.com/your-username/dock-local/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/paulowdev/dock-local)](https://github.com/paulowdev/dock-local/issues)
+[![GitHub stars](https://img.shields.io/github/stars/paulowdev/dock-local)](https://github.com/paulowdev/dock-local/stargazers)
 
 ---
 
