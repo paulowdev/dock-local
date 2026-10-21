@@ -1,0 +1,63 @@
+name: Shell Scripts
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**.sh'
+      - '**.bash'
+      - 'templates/**'
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.sh'
+      - '**.bash'
+      - 'templates/**'
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './templates'
+          severity: warning
+          format: gcc
+          ignore_paths: node_modules
+
+  shfmt:
+    name: Shell Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shfmt
+        run: |
+          wget -qO- "https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64" > shfmt
+          chmod +x shfmt
+          sudo mv shfmt /usr/local/bin/
+
+      - name: Check shell script formatting
+        run: |
+          echo "Checking shell script formatting..."
+          find . -type f \( -name "*.sh" -o -name "*.bash" \) \
+            ! -path "./node_modules/*" \
+            ! -path "./.git/*" \
+            -print0 | xargs -0 shfmt -d -i 2 -ci -bn
+
+      - name: Show formatting instructions
+        if: failure()
+        run: |
+          echo "❌ Shell scripts are not properly formatted."
+          echo ""
+          echo "To fix formatting, run:"
+          echo "  shfmt -w -i 2 -ci -bn templates/**/*.sh"
+          echo ""
+          echo "Or install shfmt and format all scripts:"
+          echo "  brew install shfmt  # macOS"
+          echo "  apt install shfmt   # Ubuntu/Debian"
+          echo "  shfmt -w -i 2 -ci -bn \$(find . -name '*.sh')"

@@ -344,6 +344,35 @@ test: add fixture for Temporal workflow
 - Follow existing code patterns
 - Keep functions focused and small
 
+### Shell Script Style
+
+All shell scripts in `templates/` are automatically checked with **Shellcheck** and **shfmt** in pull requests.
+
+**Required:**
+- Use `#!/bin/bash` or `#!/bin/sh` shebang
+- Include `set -euo pipefail` for error handling
+- Use 2-space indentation (enforced by shfmt)
+- Quote all variable expansions: `"$var"` not `$var`
+- Use `[[` instead of `[` for conditionals (in bash)
+
+**Tools:**
+```bash
+# Install tools
+brew install shellcheck shfmt  # macOS
+apt install shellcheck shfmt   # Ubuntu/Debian
+
+# Check your scripts
+shellcheck templates/**/*.sh
+
+# Format your scripts
+shfmt -w -i 2 -ci -bn templates/**/*.sh
+```
+
+**shfmt flags:**
+- `-i 2`: 2-space indentation
+- `-ci`: Switch cases indent
+- `-bn`: Binary operators at start of line
+
 ### Documentation Style
 
 - Use clear, concise language
